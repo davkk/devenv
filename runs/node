@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+export NVM_DIR="$HOME/.local/nvm"
+export NPM_CONFIG_PREFIX="$HOME/.local/npm"
+mkdir -p "$NVM_DIR" "$NPM_CONFIG_PREFIX"
+
+if [[ ! -d "$NVM_DIR/versions/node" ]]; then
+    cd "$NVM_DIR"
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/62387b8f92aa012d48202747fd75c40850e5e261/install.sh | bash
+    set +u
+    unset NPM_CONFIG_PREFIX
+    . "$NVM_DIR/nvm.sh"
+    nvm install --lts
+    nvm use --lts
+fi
+
+set +u
+unset NPM_CONFIG_PREFIX
+. "$NVM_DIR/nvm.sh"
+
+for pkg in typescript-language-server prettier eslint_d biome; do
+    if ! command -v "$pkg" &>/dev/null; then
+        npm install -g "$pkg"
+    fi
+done

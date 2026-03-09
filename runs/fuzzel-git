@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v fuzzel &>/dev/null; then
+    exit 0
+fi
+
+GIT_DIR="$HOME/git"
+
+case "$OS" in
+    fedora) sudo dnf install -y wayland-devel libxkbcommon-devel pixman-devel meson ninja-build scdoc wayland-protocols-devel tllist-devel fcft-devel ;;
+    ubuntu) sudo apt install -y libwayland-dev libxkbcommon-dev libpixman-1-dev meson ninja-build scdoc wayland-protocols libtllist-dev libfcft-dev librsvg2-dev ;;
+esac
+
+mkdir -p "$GIT_DIR"
+
+if [[ ! -d "$GIT_DIR/fuzzel/.git" ]]; then
+    git clone git@codeberg.org:dnkl/fuzzel.git "$GIT_DIR/fuzzel"
+fi
+
+cd "$GIT_DIR/fuzzel"
+git fetch
+git checkout 1.7.0
+rm -rf build
+
+meson setup build --buildtype=release
+ninja -C build
+sudo ninja -C build install
+
+fuzzel --version || true

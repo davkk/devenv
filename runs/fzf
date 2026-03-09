@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v fzf &>/dev/null; then
+    exit 0
+fi
+
+GIT_DIR="$HOME/git"
+BIN_DIR="$HOME/.local/bin"
+INSTALL_DIR="$GIT_DIR/fzf"
+
+mkdir -p "$GIT_DIR" "$BIN_DIR"
+
+if [[ ! -d "$INSTALL_DIR/.git" ]]; then
+    git clone https://github.com/junegunn/fzf.git "$INSTALL_DIR"
+fi
+
+cd "$INSTALL_DIR"
+git fetch
+git checkout v0.70.0
+
+$INSTALL_DIR/install --bin
+
+ln -sf "$GIT_DIR/fzf/bin/fzf" "$BIN_DIR/fzf"

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v light &>/dev/null; then
+    exit 0
+fi
+
+GIT_DIR="$HOME/git"
+
+case "$OS" in
+    fedora) sudo dnf install -y meson ninja-build libinput-devel libevdev-devel ;;
+    ubuntu) sudo apt install -y meson ninja-build libinput-dev libevdev-dev ;;
+esac
+
+mkdir -p "$GIT_DIR"
+
+if [[ ! -d "$GIT_DIR/light/.git" ]]; then
+    git clone git@github.com:haikarainen/light.git "$GIT_DIR/light"
+fi
+
+cd "$GIT_DIR/light"
+git fetch
+git checkout 1.2 # Use a specific tag or commit
+
+rm -rf build
+meson setup build --buildtype=release
+ninja -C build
+sudo ninja -C build install
+
+light -V

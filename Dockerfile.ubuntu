@@ -1,0 +1,27 @@
+# Test environment for dev setup scripts
+# Usage: docker build -t devenv-test-ubuntu -f Dockerfile.ubuntu .
+# docker run --rm -it -v $(pwd):/home/user/devenv devenv-test-ubuntu
+
+FROM ubuntu:latest
+
+RUN apt-get update && apt-get install -y \
+    sudo git curl wget \
+    gcc g++ make cmake ninja-build \
+    pkg-config \
+    gettext \
+    libssl-dev \
+    zlib1g-dev \
+    libffi-dev \
+    libreadline-dev \
+    libncurses5-dev
+
+RUN mkdir -p /etc/sudoers.d && useradd -m -s /bin/bash user && echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/user
+
+ENV DEV_ENV=/home/user/devenv
+ENV HOME=/home/user
+
+USER user
+
+WORKDIR /home/user/devenv
+
+CMD ["/bin/bash"]

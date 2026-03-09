@@ -1,0 +1,62 @@
+[user]
+email = 40724893+davkk@users.noreply.github.com
+name = Dawid Karpiński
+github = davkk
+
+[core]
+compression = 9
+whitespace = trailing-space
+
+[maintenance]
+auto = true
+strategy = incremental
+
+[init]
+defaultBranch = master
+
+[alias]
+st = status --short
+
+[help]
+autocorrect = prompt
+
+[status]
+branch = true
+
+[diff]
+algorithm = histogram
+
+[branch]
+sort = -committerdate
+
+[commit]
+verbose = true
+
+[column]
+ui = auto
+
+[tag]
+sort = -version:refname
+
+[rerere]
+enabled = true
+autoUpdate = true
+
+[pull]
+rebase = true
+
+[merge]
+tool = nvimdiff
+
+[mergetool]
+prompt = false
+keepBackup = false
+
+[mergetool "nvimdiff"]
+layout = "LOCAL,REMOTE / MERGED"
+
+[filter "lfs"]
+clean = git-lfs clean -- %f
+smudge = git-lfs smudge -- %f
+process = git-lfs filter-process
+required = true

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v fuzzel &>/dev/null; then
+    exit 0
+fi
+
+case "$OS" in
+    fedora) sudo dnf install -y fuzzel ;;
+    ubuntu) sudo apt install -y fuzzel ;;
+esac

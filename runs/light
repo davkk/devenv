@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v light &>/dev/null; then
+    exit 0
+fi
+
+case "$OS" in
+    fedora) sudo dnf install -y light ;;
+    ubuntu)
+        sudo apt install -y light
+        sudo usermod -a -G video "$USER"
+        ;;
+esac

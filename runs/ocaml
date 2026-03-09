@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v opam &>/dev/null; then
+    exit 0
+fi
+
+export OPAMROOT="$HOME/.local/opam"
+
+case "$OS" in
+    fedora) sudo dnf install -y opam ;;
+    ubuntu) sudo apt install -y opam ;;
+esac
+
+opam init --disable-sandboxing --yes 2>/dev/null || true

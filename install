@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+trap 'echo "Interrupted, exiting..."; exit 130' INT
+
+echo "Caching sudo credentials..."
+sudo -v
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+export DEV_ENV="$script_dir"
+
+config_file="$script_dir/devenv.conf"
+
+load_config() {
+    scripts=()
+    if [[ -f "$config_file" ]]; then
+        while IFS= read -r s; do
+            [[ -z "$s" ]] && continue
+            [[ "$s" =~ ^[[:space:]]*# ]] && continue
+            s="${s#"${s%%[![:space:]]*}"}"
+            [[ -z "$s" ]] && continue
+            [[ -x "$script_dir/runs/$s" ]] && scripts+=("$s")
+        done < "$config_file"
+    fi
+}
+
+load_config
+
+for s in "${scripts[@]}"; do
+    "$script_dir/run" "$s" || echo "⚠ $s failed, continuing..."
+    [[ "$s" == "dotfiles" ]] && . "$HOME/.bashrc" 2>/dev/null || true
+done
+
+echo "=== All done ==="

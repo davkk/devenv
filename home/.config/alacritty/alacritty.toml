@@ -1,0 +1,33 @@
+[window]
+dynamic_padding = true
+dynamic_title = false
+resize_increments = true
+
+[scrolling]
+history = 100000
+multiplier = 5
+
+[font]
+size = 14
+
+[colors.primary]
+background = "#000000"
+
+[selection]
+save_to_clipboard = true
+
+[cursor]
+thickness = 0.2
+
+[mouse]
+hide_when_typing = true
+
+[[keyboard.bindings]]
+key = "X"
+mods = "Control|Shift"
+action = "ToggleViMode"
+
+[[keyboard.bindings]]
+key = "N"
+mods = "Control|Shift"
+action = "CreateNewWindow"

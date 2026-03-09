@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+echo "Creating home directories..."
+
+mkdir -p "$HOME/personal"
+mkdir -p "$HOME/projects"
+mkdir -p "$HOME/work"
+mkdir -p "$HOME/git"
+
+mkdir -p "$HOME/.local/bin"
+mkdir -p "$HOME/.local/share"
+

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v cargo &>/dev/null; then
+    exit 0
+fi
+
+export PATH="$HOME/.local/rust/bin:$HOME/.local/cargo/bin:$PATH"
+
+rustbase="rust-1.94.0-x86_64-unknown-linux-gnu"
+rusttar="${rustbase}.tar.xz"
+
+wget https://static.rust-lang.org/dist/${rusttar} -O /tmp/${rusttar}
+
+mkdir -p /tmp/${rustbase}
+tar xf /tmp/${rusttar} -C /tmp
+/tmp/${rustbase}/install.sh --prefix=$HOME/.local/rust

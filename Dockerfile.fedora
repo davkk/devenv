@@ -1,0 +1,27 @@
+# docker build -t devenv-test -f Dockerfile.fedora .
+# docker run --rm -it -v $(pwd):/home/user/devenv devenv-test
+
+FROM fedora:latest
+
+RUN dnf install -y \
+    git curl wget \
+    gcc gcc-c++ make cmake ninja-build \
+    pkgconfig \
+    gettext \
+    glibc-gconv-extra \
+    openssl-devel \
+    zlib-devel \
+    libffi-devel \
+    readline-devel \
+    ncurses-devel
+
+RUN useradd -m -s /bin/bash user && echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/user
+
+ENV DEV_ENV=/home/user/devenv
+ENV HOME=/home/user
+
+USER user
+
+WORKDIR /home/user/devenv
+
+CMD ["/bin/bash"]

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v zen &>/dev/null; then
+    exit 0
+fi
+
+BIN_DIR="$HOME/.local/bin"
+APPS_DIR="$HOME/.local/share/applications"
+
+mkdir -p "$BIN_DIR"
+mkdir -p "$APPS_DIR"
+
+curl -LsS -o "$BIN_DIR/zen" "https://github.com/zen-browser/desktop/releases/download/1.19.1b/zen-x86_64.AppImage"
+chmod +x "$BIN_DIR/zen"
+
+cat > "$APPS_DIR/zen.desktop" << 'EOF'
+[Desktop Entry]
+Name=Zen Browser
+Comment=Firefox-based browser with productivity features
+Exec=zen %u
+Icon=zen
+Terminal=false
+Type=Application
+Categories=Network;WebBrowser;
+MimeType=x-scheme-handler/http;x-scheme-handler/https;
+EOF
+
+update-desktop-database "$APPS_DIR" 2>/dev/null || true
+
+zen --version

@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+if [ -z "${DEV_ENV:-}" ]; then
+    echo "Error: DEV_ENV env var needs to be present"
+    echo "Usage: DEV_ENV=/path/to/repo ./run [pattern] [--dry]"
+    exit 1
+fi
+
+export DEV_ENV="$DEV_ENV"
+
+grep=""
+dry_run="0"
+
+while [[ $# -gt 0 ]]; do
+    if [[ "$1" == "--dry" ]]; then
+        dry_run="1"
+    else
+        grep="$1"
+    fi
+    shift
+done
+
+log() {
+    if [[ $dry_run == "1" ]]; then
+        echo "[DRY_RUN] $1"
+    else
+        echo "$1"
+    fi
+}
+
+detect_os() {
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        case "$ID" in
+            fedora) echo "fedora" ;;
+            ubuntu|debian) echo "ubuntu" ;;
+            *) echo "unknown" ;;
+        esac
+    else
+        echo "unknown"
+    fi
+}
+
+export OS=$(detect_os)
+
+if [[ "$OS" == "unknown" ]]; then
+    echo "Error: unknown OS"
+    exit 1
+fi
+
+wait_apt_lock() {
+    while sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock >/dev/null 2>&1; do
+        sleep 1
+    done
+}
+
+log "[RUN] [OS: $OS] [filter: $grep]"
+
+runs_dir=$(find "$DEV_ENV/runs" -mindepth 1 -maxdepth 1 -type f -executable 2>/dev/null || true)
+
+if [[ -z "$runs_dir" ]]; then
+    echo "Error: no executable scripts found in $DEV_ENV/runs"
+    exit 1
+fi
+
+for s in $runs_dir; do
+    if [[ -n "$grep" ]] && [[ "$(basename "$s")" != "$grep" ]]; then
+        continue
+    fi
+
+    log "running: $s"
+
+    if [[ $dry_run == "0" ]]; then
+        "$s"
+    fi
+done
+
+log "Setup complete!"

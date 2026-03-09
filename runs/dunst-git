@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v dunst &>/dev/null; then
+    exit 0
+fi
+
+GIT_DIR="$HOME/git"
+
+case "$OS" in
+    fedora) sudo dnf install -y dbus-devel libXinerama-devel libXrandr-devel libXScrnSaver-devel glib2-devel pango-devel cairo-devel libnotify-devel wayland-devel ;;
+    ubuntu) sudo apt install -y libdbus-1-dev libxinerama-dev libxrandr-dev libxss-dev libglib2.0-dev libpango1.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libnotify-dev libwayland-dev wayland-protocols ;;
+esac
+
+mkdir -p "$GIT_DIR"
+
+if [[ ! -d "$GIT_DIR/dunst/.git" ]]; then
+    git clone git@github.com:dunst-project/dunst.git "$GIT_DIR/dunst"
+fi
+
+cd "$GIT_DIR/dunst"
+git fetch
+git checkout b790e2a7682096a194307ba93d1f8fe3aef01740
+
+make
+sudo make install
+
+dunst --version

@@ -1,0 +1,32 @@
+[global]
+font = monospace 12
+offset = (20, 20)
+notification_limit = 10
+show_age_threshold = 10
+history_length = 5
+stack_duplicates = true
+frame_width = 2
+padding = 12
+horizontal_padding = 12
+text_icon_padding = 12
+
+[experimental]
+per_monitor_dpi = true
+
+[urgency_low]
+background = "#000000"
+foreground = "#888888"
+frame_color = "#111111"
+timeout = 3
+
+[urgency_normal]
+background = "#111111"
+foreground = "#ffffff"
+frame_color = "#222222"
+timeout = 5
+
+[urgency_critical]
+background = "#900000"
+foreground = "#ffffff"
+frame_color = "#900000"
+timeout = 0

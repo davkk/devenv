@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+GIT_DIR="$HOME/git"
+BUILD_CONFIG="$HOME/.config/iosevka-build.toml"
+
+case "$OS" in
+    fedora) sudo dnf install -y ttfautohint ;;
+    ubuntu) sudo apt install -y ttfautohint ;;
+esac
+
+if ! command -v npm &> /dev/null; then
+    echo "Error: Node.js/npm is required to build Iosevka"
+    echo "Install Node.js first: ./run node"
+    exit 1
+fi
+
+if [[ ! -f "$BUILD_CONFIG" ]]; then
+    echo "Error: Build config not found at $BUILD_CONFIG"
+    echo "Make sure dotfiles are installed: ./run dotfiles"
+    exit 1
+fi
+
+mkdir -p "$GIT_DIR"
+
+if [[ ! -d "$GIT_DIR/Iosevka/.git" ]]; then
+    git clone --depth 1 https://github.com/be5invis/Iosevka.git "$GIT_DIR/Iosevka"
+fi
+
+cd "$GIT_DIR/Iosevka"
+git fetch
+git checkout a0da04f6e2dadee78d672d27fc370111e15cb483
+
+if [[ ! -d node_modules ]]; then
+    npm install
+fi
+
+if [[ ! -f private-build-plans.toml ]]; then
+    cp "$BUILD_CONFIG" "$GIT_DIR/Iosevka/private-build-plans.toml"
+fi
+
+if [[ ! -d dist/Iosevka ]]; then
+    npm run build -- contents::Iosevka
+fi

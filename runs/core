@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+case "$OS" in
+    fedora)
+        sudo dnf update -y
+        sudo dnf install -y \
+            sway grimshot grim slurp jq wl-clipboard \
+            git curl wget moreutils \
+            gcc gcc-c++ make cmake ninja-build \
+            desktop-file-utils \
+            pkgconfig gettext glibc-gconv-extra \
+            openssl-devel zlib-devel libffi-devel readline-devel ncurses-devel \
+            parallel tmux
+        ;;
+    ubuntu)
+        sudo apt update && sudo apt upgrade -y
+        sudo apt install -y \
+            sway grimshot grim slurp jq wl-clipboard \
+            git curl wget moreutils software-properties-common \
+            desktop-file-utils pkg-config gettext \
+            libssl-dev zlib1g-dev libffi-dev libreadline-dev libncurses5-dev \
+            parallel tmux
+        ;;
+esac

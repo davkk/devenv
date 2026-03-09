@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+export LUAROCKS_PREFIX="$HOME/.local/luarocks"
+BIN_DIR="$HOME/.local/bin"
+
+case "$OS" in
+    fedora) sudo dnf install -y lua5.1 luarocks ;;
+    ubuntu) sudo apt install -y lua5.1 luarocks ;;
+esac
+
+if ! command -v luacheck &>/dev/null; then
+    luarocks --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install luacheck
+fi
+
+if ! command -v stylua &>/dev/null; then
+    mkdir -p "$BIN_DIR"
+    if command -v cargo &>/dev/null; then
+        cargo install stylua --version 2.4.0
+    else
+        TMP_DIR="/tmp/stylua-$$"
+        mkdir -p "$TMP_DIR"
+        wget -O "$TMP_DIR/stylua-linux-x86_64.zip" "https://github.com/JohnnyMorganz/StyLua/releases/download/v2.4.0/stylua-linux-x86_64.zip"
+        unzip -j "$TMP_DIR/stylua-linux-x86_64.zip" -d "$BIN_DIR" "stylua"
+        rm -rf "$TMP_DIR"
+    fi
+fi
+
+if ! luarocks list | grep -q busted; then
+    luarocks --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install busted
+fi
+
+if ! luarocks list | grep -q nlua; then
+    luarocks --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install nlua
+fi
+
+if ! command -v lua-language-server &>/dev/null; then
+    BIN_DIR="$HOME/.local/bin"
+    TMP_DIR="/tmp/lua-ls-$$"
+    mkdir -p "$TMP_DIR" "$BIN_DIR"
+    curl -L -o "$TMP_DIR/lua-language-server.tar.gz" \
+        "https://github.com/LuaLS/lua-language-server/releases/download/3.17.1/lua-language-server-3.17.1-linux-x64.tar.gz"
+    tar -xzf "$TMP_DIR/lua-language-server.tar.gz" -C "$TMP_DIR"
+    cp "$TMP_DIR/bin/lua-language-server" "$BIN_DIR/"
+fi

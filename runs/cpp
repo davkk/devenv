@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+case "$OS" in
+    fedora) sudo dnf install -y gcc gcc-c++ clang clang-tools-extra ;;
+    ubuntu) sudo apt install -y g++ clangd clang-format clang-tidy ;;
+esac
+
+if ! command -v cpplint &>/dev/null; then
+    pip3 install cpplint
+fi

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v alacritty &>/dev/null; then
+    exit 0
+fi
+
+case "$OS" in
+    fedora) sudo dnf install -y alacritty ;;
+    ubuntu)
+        sudo add-apt-repository ppa:aslatter/ppa -y
+        sudo apt install -y alacritty
+        ;;
+esac

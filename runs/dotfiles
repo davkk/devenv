@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+ENV_DIR="$DEV_ENV/home"
+
+find "$ENV_DIR" -mindepth 1 | while read -r item; do
+    rel_path="${item#$ENV_DIR/}"
+    dst="$HOME/$rel_path"
+
+    if [[ -d "$item" ]]; then
+        mkdir -p "$dst"
+    else
+        mkdir -p "$(dirname "$dst")"
+        cp -P "$item" "$dst"
+        echo "  Copied $rel_path"
+    fi
+done
+
+cd "$ENV_DIR/.config/nvim"
+git submodule update --init --recursive
+
+echo "Dotfiles setup complete!"

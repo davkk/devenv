@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v rg &>/dev/null; then
+    exit 0
+fi
+
+case "$OS" in
+    fedora) sudo dnf install -y ripgrep ;;
+    ubuntu) sudo apt install -y ripgrep ;;
+esac

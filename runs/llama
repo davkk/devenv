@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v llama &>/dev/null || [[ -f "$HOME/git/llama.cpp/build/bin/llama" ]]; then
+    exit 0
+fi
+
+GIT_DIR="$HOME/git"
+
+mkdir -p "$GIT_DIR"
+
+if [[ ! -d "$GIT_DIR/llama.cpp/.git" ]]; then
+    git clone https://github.com/ggerganov/llama.cpp.git "$GIT_DIR/llama.cpp"
+fi
+
+cd "$GIT_DIR/llama.cpp"
+git fetch
+git checkout 35bee031e17ed2b2e8e7278b284a6c8cd120d9f8
+
+cmake -B build -DGGML_VULKAN=1 -DBUILD_SHARED_LIBS=OFF -DLLAMA_MTMD=ON
+cmake --build build --config Release -j 10
+sudo cmake --install build
