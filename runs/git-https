@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+config_file="$DEV_ENV/home/.config/.gitconfig"
+
+if ! git config --file "$config_file" --get url."https://github.com/".insteadOf >/dev/null; then
+    git config --file "$config_file" --get url."https://github.com/".insteadOf git@github.com:
+    echo "Rewrite rule added"
+fi

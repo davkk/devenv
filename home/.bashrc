@@ -38,7 +38,6 @@ export QT_ENABLE_HIGHDPI_SCALING=1
 
 export HISTSIZE=100000000
 export SAVEHIST=$HISTSIZE
-export HISTFILE=$XDG_DATA_HOME/zsh_history
 
 export ANDROID_SDK_ROOT=$HOME/.android
 export ANDROID_AVD_HOME=$HOME/.android
@@ -48,17 +47,19 @@ export CARGO_HOME="$HOME/.local/cargo"
 export RUSTUP_HOME="$HOME/.local/rustup"
 export OPAM_SWITCH_PREFIX="$HOME/.local/opam"
 export NPM_CONFIG_PREFIX="$HOME/.local/npm"
+export ZVM_HOME="$HOME/.local/zvm"
+export GOBIN="$HOME/.local/go/bin"
 
 export PATH=$PATH:$HOME/.local/bin
 export PATH=$PATH:$HOME/.local/go/bin
 export PATH=$PATH:$HOME/.local/rust/bin
-export PATH=$PATH:$CARGO_HOME/bin
-export PATH=$PATH:$NVM_DIR/versions/node/$(ls $NVM_DIR/versions/node 2>/dev/null | tail -1)/bin
-export PATH=$PATH:$NPM_CONFIG_PREFIX/bin
 export PATH=$PATH:$HOME/.local/luarocks/bin
 export PATH=$PATH:$HOME/.local/opam/bin
 export PATH=$PATH:$HOME/.local/zvm/bin
-export PATH=$PATH:$HOME/.config/.scripts/
+export PATH=$PATH:$ZVM_HOME/bin
+export PATH=$PATH:$CARGO_HOME/bin
+export PATH=$PATH:$NVM_DIR/versions/node/$(ls $NVM_DIR/versions/node 2>/dev/null | tail -1)/bin
+export PATH=$PATH:$NPM_CONFIG_PREFIX/bin
 export PATH=$PATH:$HOME/.android/cmdline-tools/latest/bin
 export PATH=$PATH:$HOME/.android/emulator
 export PATH=$PATH:$HOME/.android/platform-tools
@@ -72,6 +73,7 @@ export FZF_DEFAULT_OPTS="
 --color=pointer:#ffffff,marker:#ffffff,prompt:#ffffff
 --bind ctrl-y:accept
 "
+source <(fzf --bash 2>/dev/null)
 
 export GIT_CONFIG_GLOBAL=$HOME/.config/.gitconfig
 
@@ -134,7 +136,7 @@ _prompt_precmd() {
     branch=${branch%%...*}
     local ahead=0 behind=0 dirty=''
 
-    # Detached HEAD fallback
+    # detached HEAD fallback
     if [[ $branch == 'HEAD (no branch)' || $branch == 'No commits yet on '* ]]; then
         branch="@$(git rev-parse --short HEAD 2>/dev/null)"
     fi

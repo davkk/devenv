@@ -25,7 +25,7 @@ fi
 mkdir -p "$GIT_DIR"
 
 if [[ ! -d "$GIT_DIR/Iosevka/.git" ]]; then
-    git clone --depth 1 https://github.com/be5invis/Iosevka.git "$GIT_DIR/Iosevka"
+    git clone --depth 1 git@github.com:be5invis/Iosevka.git "$GIT_DIR/Iosevka"
 fi
 
 cd "$GIT_DIR/Iosevka"

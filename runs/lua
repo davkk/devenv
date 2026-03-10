@@ -28,11 +28,11 @@ if ! command -v stylua &>/dev/null; then
 fi
 
 if ! luarocks list | grep -q busted; then
-    luarocks --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install busted
+    luarocks --local --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install busted
 fi
 
 if ! luarocks list | grep -q nlua; then
-    luarocks --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install nlua
+    luarocks --local --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install nlua
 fi
 
 if ! command -v lua-language-server &>/dev/null; then

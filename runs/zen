@@ -19,7 +19,7 @@ cat > "$APPS_DIR/zen.desktop" << 'EOF'
 [Desktop Entry]
 Name=Zen Browser
 Comment=Firefox-based browser with productivity features
-Exec=zen %u
+Exec=~/.local/bin/zen %u
 Icon=zen
 Terminal=false
 Type=Application

@@ -6,4 +6,4 @@ if command -v rot8 &>/dev/null; then
     exit 0
 fi
 
-cargo install rot8 --version 1.0
+cargo install rot8 --version 1.0.0

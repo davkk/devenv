@@ -12,7 +12,7 @@ PROJECTS_DIR="$HOME/projects"
 mkdir -p "$GIT_DIR"
 
 if [[ ! -d "$GIT_DIR/neovim/.git" ]]; then
-    git clone https://github.com/neovim/neovim.git "$GIT_DIR/neovim"
+    git clone git@github.com:neovim/neovim.git "$GIT_DIR/neovim"
 fi
 
 cd "$GIT_DIR/neovim"
