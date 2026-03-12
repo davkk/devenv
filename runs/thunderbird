@@ -10,5 +10,3 @@ case "$OS" in
     fedora) sudo dnf install -y thunderbird ;;
     ubuntu) sudo apt install -y thunderbird ;;
 esac
-
-thunderbird --version

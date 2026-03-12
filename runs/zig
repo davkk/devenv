@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if ! command -v zig &>/dev/null; then
+if ! command -v zig &>/dev/null && ! command -v zvm &>/dev/null; then
     go install -ldflags "-s -w" github.com/tristanisham/zvm@latest
 
     zvm install master

@@ -28,5 +28,3 @@ MimeType=x-scheme-handler/http;x-scheme-handler/https;
 EOF
 
 update-desktop-database "$APPS_DIR" 2>/dev/null || true
-
-zen --version

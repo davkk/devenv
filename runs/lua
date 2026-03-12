@@ -4,11 +4,14 @@ set -euo pipefail
 
 export LUAROCKS_PREFIX="$HOME/.local/luarocks"
 BIN_DIR="$HOME/.local/bin"
+GIT_DIR="$HOME/git"
 
-case "$OS" in
-    fedora) sudo dnf install -y lua5.1 luarocks ;;
-    ubuntu) sudo apt install -y lua5.1 luarocks ;;
-esac
+if ! command -v lua &>/dev/null || ! command -v luarocks &>/dev/null; then
+    case "$OS" in
+        fedora) sudo dnf install -y lua5.1 luarocks libstdc++-static ;;
+        ubuntu) sudo apt install -y lua5.1 luarocks libstdc++-dev ;;
+    esac
+fi
 
 if ! command -v luacheck &>/dev/null; then
     luarocks --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install luacheck
@@ -27,20 +30,21 @@ if ! command -v stylua &>/dev/null; then
     fi
 fi
 
-if ! luarocks list | grep -q busted; then
+if ! command -v busted &>/dev/null; then
     luarocks --local --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install busted
 fi
 
-if ! luarocks list | grep -q nlua; then
+if ! command -v nlua &>/dev/null; then
     luarocks --local --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install nlua
 fi
 
 if ! command -v lua-language-server &>/dev/null; then
-    BIN_DIR="$HOME/.local/bin"
-    TMP_DIR="/tmp/lua-ls-$$"
-    mkdir -p "$TMP_DIR" "$BIN_DIR"
-    curl -L -o "$TMP_DIR/lua-language-server.tar.gz" \
-        "https://github.com/LuaLS/lua-language-server/releases/download/3.17.1/lua-language-server-3.17.1-linux-x64.tar.gz"
-    tar -xzf "$TMP_DIR/lua-language-server.tar.gz" -C "$TMP_DIR"
-    cp "$TMP_DIR/bin/lua-language-server" "$BIN_DIR/"
+    mkdir -p "$GIT_DIR" "$BIN_DIR"
+    if [[ ! -d "$GIT_DIR/lua-language-server" ]]; then
+        git clone https://github.com/LuaLS/lua-language-server "$GIT_DIR/lua-language-server"
+    fi
+    cd "$GIT_DIR/lua-language-server"
+    chmod +x make.sh
+    ./make.sh
+    ln -s "$GIT_DIR/lua-language-server/bin/lua-language-server" "$BIN_DIR/lua-language-server"
 fi

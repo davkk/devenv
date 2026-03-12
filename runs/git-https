@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-config_file="$DEV_ENV/home/.config/.gitconfig"
+config_file="$HOME/.gitconfig"
+urls=("github.com" "gitlab.com" "codeberg.org")
 
-if ! git config --file "$config_file" --get url."https://github.com/".insteadOf >/dev/null; then
-    git config --file "$config_file" --get url."https://github.com/".insteadOf git@github.com:
-    echo "Rewrite rule added"
-fi
+for url in "${urls[@]}"; do
+    if ! git config --file "$config_file" --get url."https://${url}/".insteadOf >/dev/null; then
+        git config --file "$config_file" url."https://${url}/".insteadOf git@${url}:
+    fi
+done

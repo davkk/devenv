@@ -1,62 +1,45 @@
 [user]
-email = 40724893+davkk@users.noreply.github.com
-name = Dawid Karpiński
-github = davkk
-
+	email = 40724893+davkk@users.noreply.github.com
+	name = Dawid Karpiński
+	github = davkk
 [core]
-compression = 9
-whitespace = trailing-space
-
+	compression = 9
+	whitespace = trailing-space
 [maintenance]
-auto = true
-strategy = incremental
-
+	auto = true
+	strategy = incremental
 [init]
-defaultBranch = master
-
+	defaultBranch = master
 [alias]
-st = status --short
-
+	st = status --short
 [help]
-autocorrect = prompt
-
+	autocorrect = prompt
 [status]
-branch = true
-
+	branch = true
 [diff]
-algorithm = histogram
-
+	algorithm = histogram
 [branch]
-sort = -committerdate
-
+	sort = -committerdate
 [commit]
-verbose = true
-
+	verbose = true
 [column]
-ui = auto
-
+	ui = auto
 [tag]
-sort = -version:refname
-
+	sort = -version:refname
 [rerere]
-enabled = true
-autoUpdate = true
-
+	enabled = true
+	autoUpdate = true
 [pull]
-rebase = true
-
+	rebase = true
 [merge]
-tool = nvimdiff
-
+	tool = nvimdiff
 [mergetool]
-prompt = false
-keepBackup = false
-
+	prompt = false
+	keepBackup = false
 [mergetool "nvimdiff"]
-layout = "LOCAL,REMOTE / MERGED"
-
+	layout = "LOCAL,REMOTE / MERGED"
 [filter "lfs"]
-clean = git-lfs clean -- %f
-smudge = git-lfs smudge -- %f
-process = git-lfs filter-process
-required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true

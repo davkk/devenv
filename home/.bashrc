@@ -5,6 +5,10 @@ export XDG_DATA_HOME=$HOME/.local/share
 export HYPHEN_INSENSITIVE=false
 export WORDCHARS=
 
+set -o emacs
+bind '"\C-y": accept-line'
+bind '"\C-n": complete'
+
 sd() {
     dirs=(~/ ~/git ~/projects ~/work ~/personal ~/university)
     selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60%)
@@ -36,6 +40,7 @@ export QT_QPA_PLATFORM="wayland"
 export QT_QPA_PLATFORMTHEME="qt5ct"
 export QT_ENABLE_HIGHDPI_SCALING=1
 
+export HISTFILE=$XDG_DATA_HOME/bash_history
 export HISTSIZE=100000000
 export SAVEHIST=$HISTSIZE
 
@@ -58,7 +63,6 @@ export PATH=$PATH:$HOME/.local/opam/bin
 export PATH=$PATH:$HOME/.local/zvm/bin
 export PATH=$PATH:$ZVM_HOME/bin
 export PATH=$PATH:$CARGO_HOME/bin
-export PATH=$PATH:$NVM_DIR/versions/node/$(ls $NVM_DIR/versions/node 2>/dev/null | tail -1)/bin
 export PATH=$PATH:$NPM_CONFIG_PREFIX/bin
 export PATH=$PATH:$HOME/.android/cmdline-tools/latest/bin
 export PATH=$PATH:$HOME/.android/emulator
