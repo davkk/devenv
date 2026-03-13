@@ -52,7 +52,7 @@ export CARGO_HOME="$HOME/.local/cargo"
 export RUSTUP_HOME="$HOME/.local/rustup"
 export OPAM_SWITCH_PREFIX="$HOME/.local/opam"
 export NPM_CONFIG_PREFIX="$HOME/.local/npm"
-export ZVM_HOME="$HOME/.local/zvm"
+export ZVM_PATH="$HOME/.local/zvm"
 export GOBIN="$HOME/.local/go/bin"
 
 export PATH=$PATH:$HOME/.local/bin

@@ -2,10 +2,15 @@
 
 set -euo pipefail
 
-if ! command -v zig &>/dev/null && ! command -v zvm &>/dev/null; then
+if ! command -v zvm &>/dev/null; then
     go install -ldflags "-s -w" github.com/tristanisham/zvm@latest
+fi
 
+if ! command -v zig &>/dev/null; then
     zvm install master
     zvm use master
+fi
+
+if ! command -v zls &>/dev/null; then
     zvm install --zls master
 fi
