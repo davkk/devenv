@@ -129,11 +129,8 @@ _prompt_precmd() {
 
     # git
     git_info=''
-    git_root=''
     local st
     st=$(git status --porcelain -b 2>/dev/null) || { _build_ps1; return; }
-
-    git_root=$(git rev-parse --show-toplevel 2>/dev/null)
 
     local line=${st%%$'\n'*}
     local branch=${line#\#\# }
@@ -156,13 +153,25 @@ _prompt_precmd() {
     _build_ps1
 }
 
+_find_git_marker() {
+    local dir="$PWD"
+    local path=""
+    local part
+    while IFS= read -r -d'/' part; do
+        path="$path/$part"
+        [[ -e "$path/.git" ]] && echo "$path" && return 0
+    done <<< "${dir#/}/"
+    return 1
+}
+
 _build_ps1() {
     # dir
     local d
-    if [[ -n "$git_root" ]]; then
-        d="${git_root##*/}${PWD#$git_root}"
+    local git_marker=$(_find_git_marker "$PWD")
+    if [[ -n "$git_marker" ]]; then
+        d="${git_marker##*/}${PWD#$git_marker}"
     else
-        d="${PWD/#$HOME/~}"
+        d="${PWD/#$HOME/\~}"
     fi
     (( ${#d} > 80 )) && d="${d:0:77}..."
     local prompt_dir="\[\e[1m\]\[\e[34m\]${d}\[\e[0m\]"
