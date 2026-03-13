@@ -98,6 +98,10 @@ if command -v direnv >/dev/null 2>&1; then
     eval "$(direnv hook bash)" 2>/dev/null
 fi
 
+if command -v luarocks >/dev/null 2>&1; then
+    eval $(luarocks path --lua-version 5.1 --no-bin) 2>/dev/null
+fi
+
 last_exit=0
 git_info=''
 git_root=''

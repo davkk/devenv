@@ -2,7 +2,6 @@
 
 set -euo pipefail
 
-export LUAROCKS_PREFIX="$HOME/.local/luarocks"
 BIN_DIR="$HOME/.local/bin"
 GIT_DIR="$HOME/git"
 
@@ -14,7 +13,7 @@ if ! command -v lua &>/dev/null || ! command -v luarocks &>/dev/null; then
 fi
 
 if ! command -v luacheck &>/dev/null; then
-    luarocks --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install luacheck
+    luarocks --local --lua-version=5.1 install luacheck
 fi
 
 if ! command -v stylua &>/dev/null; then
@@ -31,11 +30,11 @@ if ! command -v stylua &>/dev/null; then
 fi
 
 if ! command -v busted &>/dev/null; then
-    luarocks --local --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install busted
+    luarocks --local --lua-version=5.1 install busted
 fi
 
 if ! command -v nlua &>/dev/null; then
-    luarocks --local --lua-version=5.1 --tree "$LUAROCKS_PREFIX" install nlua
+    luarocks --local --lua-version=5.1 install nlua
 fi
 
 if ! command -v lua-language-server &>/dev/null; then
