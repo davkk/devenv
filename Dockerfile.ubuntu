@@ -4,16 +4,7 @@
 
 FROM ubuntu:latest
 
-RUN apt-get update && apt-get install -y \
-    sudo git curl wget \
-    gcc g++ make cmake ninja-build \
-    pkg-config \
-    gettext \
-    libssl-dev \
-    zlib1g-dev \
-    libffi-dev \
-    libreadline-dev \
-    libncurses5-dev
+RUN apt-get update && apt-get install -y sudo git curl wget
 
 RUN mkdir -p /etc/sudoers.d && useradd -m -s /bin/bash user && echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/user
 
@@ -23,5 +14,6 @@ ENV HOME=/home/user
 USER user
 
 WORKDIR /home/user/devenv
+COPY . .
 
 CMD ["/bin/bash"]

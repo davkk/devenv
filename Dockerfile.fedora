@@ -3,17 +3,7 @@
 
 FROM fedora:latest
 
-RUN dnf install -y \
-    git curl wget \
-    gcc gcc-c++ make cmake ninja-build \
-    pkgconfig \
-    gettext \
-    glibc-gconv-extra \
-    openssl-devel \
-    zlib-devel \
-    libffi-devel \
-    readline-devel \
-    ncurses-devel
+RUN dnf install -y git curl wget
 
 RUN useradd -m -s /bin/bash user && echo "user ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/user
 
@@ -23,5 +13,6 @@ ENV HOME=/home/user
 USER user
 
 WORKDIR /home/user/devenv
+COPY . .
 
 CMD ["/bin/bash"]

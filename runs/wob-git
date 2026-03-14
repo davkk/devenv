@@ -9,8 +9,8 @@ fi
 GIT_DIR="$HOME/git"
 
 case "$OS" in
-    fedora) sudo dnf install -y wayland-devel meson inih-devel wayland-protocols-devel libseccomp-devel ;;
-    ubuntu) sudo apt install -y libwayland-dev meson libinih-dev wayland-protocols libseccomp-dev ;;
+    fedora) sudo dnf install -y wayland-devel meson ninja-build inih-devel wayland-protocols-devel libseccomp-devel ;;
+    ubuntu) sudo apt install -y libwayland-dev meson ninja-build libinih-dev wayland-protocols libseccomp-dev ;;
 esac
 
 mkdir -p "$GIT_DIR"

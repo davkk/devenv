@@ -8,7 +8,7 @@ GIT_DIR="$HOME/git"
 if ! command -v lua &>/dev/null || ! command -v luarocks &>/dev/null; then
     case "$OS" in
         fedora) sudo dnf install -y lua5.1 luarocks libstdc++-static ;;
-        ubuntu) sudo apt install -y lua5.1 luarocks libstdc++-dev ;;
+        ubuntu) sudo apt install -y lua5.1 luarocks libstdc++-12-dev ;;
     esac
 fi
 

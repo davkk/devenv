@@ -44,8 +44,7 @@ export HISTFILE=$XDG_DATA_HOME/bash_history
 export HISTSIZE=100000000
 export SAVEHIST=$HISTSIZE
 
-export ANDROID_SDK_ROOT=$HOME/.android
-export ANDROID_AVD_HOME=$HOME/.android
+export GIT_CONFIG_GLOBAL=$XDG_CONFIG_HOME/.gitconfig
 
 export NVM_DIR="$HOME/.local/nvm"
 export CARGO_HOME="$HOME/.local/cargo"
@@ -54,6 +53,8 @@ export OPAM_SWITCH_PREFIX="$HOME/.local/opam"
 export NPM_CONFIG_PREFIX="$HOME/.local/npm"
 export ZVM_PATH="$HOME/.local/zvm"
 export GOBIN="$HOME/.local/go/bin"
+export ANDROID_SDK_ROOT=$HOME/.android
+export ANDROID_AVD_HOME=$HOME/.android
 
 export PATH=$PATH:$HOME/.local/bin
 export PATH=$PATH:$HOME/.local/go/bin
@@ -78,8 +79,6 @@ export FZF_DEFAULT_OPTS="
 --bind ctrl-y:accept
 "
 source <(fzf --bash 2>/dev/null)
-
-export GIT_CONFIG_GLOBAL=$HOME/.config/.gitconfig
 
 export _JAVA_AWT_WM_NONREPARENTING=1
 
