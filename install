@@ -8,7 +8,7 @@ echo "Caching sudo credentials..."
 sudo -v
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-lib_file="$script_dir/run.lib"
+lib_file="$script_dir/common"
 
 if [ -z "${DEV_ENV:-}" ]; then
     echo "Error: DEV_ENV env var needs to be present"
