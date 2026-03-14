@@ -25,7 +25,7 @@ load_config "$script_dir" scripts
 
 for s in "${scripts[@]}"; do
     echo "Running $s"
-    "$script_dir/run" "$s" || echo "⚠ $s failed, continuing..."
+    "$script_dir/run" "$s"
 done
 
 echo "=== All done ==="

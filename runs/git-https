@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-config_file="$HOME/.gitconfig"
+config_file="$HOME/.config/.gitconfig"
 urls=("github.com" "gitlab.com" "codeberg.org")
 
 for url in "${urls[@]}"; do

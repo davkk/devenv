@@ -17,7 +17,6 @@ load_config() {
     local script_dir="$1"
     local config_file="$script_dir/devenv.conf"
     local -n arr="$2"
-    
     if [[ -f "$config_file" ]]; then
         while IFS= read -r s; do
             [[ -z "$s" || "$s" =~ ^# ]] && continue
@@ -30,5 +29,9 @@ load_config() {
 }
 
 source_bashrc() {
-    [[ -f "$HOME/.bashrc" ]] && { set +eu; . "$HOME/.bashrc"; set -eu; }
+    if [[ -f "$HOME/.bashrc" ]]; then
+        set +eu
+        . "$HOME/.bashrc"
+        set -eu
+    fi
 }

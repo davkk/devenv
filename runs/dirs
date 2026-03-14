@@ -4,12 +4,12 @@ set -euo pipefail
 
 echo "Creating home directories..."
 
+mkdir -p "$HOME/.config"
+mkdir -p "$HOME/.local/bin"
+mkdir -p "$HOME/.local/share"
+
 mkdir -p "$HOME/personal"
 mkdir -p "$HOME/projects"
 mkdir -p "$HOME/work"
 mkdir -p "$HOME/git"
 mkdir -p "$HOME/notes"
-
-mkdir -p "$HOME/.local/bin"
-mkdir -p "$HOME/.local/share"
-

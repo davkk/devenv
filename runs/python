@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
+if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null || ! command -v pip3 &>/dev/null; then
     case "$OS" in
         fedora) sudo dnf install -y python3 python3-pip ;;
         ubuntu) sudo apt install -y python3 python3-pip ;;

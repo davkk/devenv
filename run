@@ -62,8 +62,6 @@ for s in $runs_dir; do
         continue
     fi
 
-    log "running: $s"
-
     if [[ $dry_run == "0" ]]; then
         source_bashrc
         "$s"

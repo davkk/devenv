@@ -2,22 +2,17 @@
 
 set -euo pipefail
 
-ENV_DIR="$DEV_ENV/home"
-
-find "$ENV_DIR" -mindepth 1 | while read -r item; do
-    rel_path="${item#$ENV_DIR/}"
-    dst="$HOME/$rel_path"
-
-    if [[ -d "$item" ]]; then
-        mkdir -p "$dst"
-    else
-        mkdir -p "$(dirname "$dst")"
-        cp -P "$item" "$dst"
-        echo "  Copied $rel_path"
+FILES=`find "$DEV_ENV/home" -maxdepth 1 -type f`
+for f in "${FILES[@]}"; do
+    base=`basename "$f"`
+    home_path="$HOME/$base"
+    if [[ -f "$home_path" && ! -L "$home_path" ]]; then
+        echo "  Backing up $home_path"
+        mv "$home_path" "$home_path.bak"
     fi
 done
 
-cd "$ENV_DIR/.config/nvim"
-git submodule update --init --recursive
+cd "$DEV_ENV"
+stow -v --target="$HOME" home
 
 echo "Dotfiles setup complete!"
