@@ -36,7 +36,7 @@ local function get_formatter(bufnr)
     local ft = vim.bo[bufnr].filetype
     for _, formatter in pairs(formatters) do
         for _, filetype in ipairs(formatter.filetypes) do
-            local check_markers = false
+            local check_markers = true
             if formatter.root_markers ~= nil then
                 check_markers = vim.fs.root(bufnr, formatter.root_markers) ~= nil
             end
