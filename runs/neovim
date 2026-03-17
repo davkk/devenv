@@ -37,3 +37,5 @@ mkdir -p "$(dirname "$PLUGIN_DIR")"
 [[ -L "$PLUGIN_DIR" ]] && rm "$PLUGIN_DIR"
 [[ -d "$PLUGIN_DIR" ]] && rm -rf "$PLUGIN_DIR"
 ln -sf "$PROJECTS_DIR/quickfill.nvim" "$PLUGIN_DIR"
+
+npm i -g tree-sitter-cli
