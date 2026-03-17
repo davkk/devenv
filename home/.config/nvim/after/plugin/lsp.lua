@@ -61,14 +61,6 @@ vim.lsp.config("ocamllsp", {
     },
 })
 
-vim.lsp.config("basedpyright", {
-    settings = {
-        python = {
-            analysis = { typeCheckingMode = "basic" },
-        },
-    },
-})
-
 vim.lsp.config("zls", {
     settings = {
         zls = {
@@ -86,8 +78,7 @@ vim.lsp.enable {
     "cssls",
     "clangd",
     "ocamllsp",
-    -- "ruff",
-    "basedpyright",
+    "pyrefly",
     "gopls",
     "marksman",
     "texlab",
