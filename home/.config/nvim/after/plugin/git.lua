@@ -90,11 +90,51 @@ local function git_diff(ref)
     vim.cmd.diffthis()
 end
 
+local function git_blame(ref)
+    ref = ref or nil
+
+    local root_dir = vim.fs.root(0, ".git")
+    if not root_dir then
+        vim.notify("Not in a git repository", vim.log.levels.ERROR)
+    end
+
+    local fullpath = vim.fn.expand "%:p"
+    if fullpath == "" then
+        vim.notify("No file under cursor", vim.log.levels.ERROR)
+        return
+    end
+
+    local relpath = fullpath:sub(#root_dir + 2)
+
+    local row = unpack(vim.api.nvim_win_get_cursor(0))
+    row = row - 1
+
+    local blame_res = vim.system(
+        { "git", "blame", ref, ("-L%d,%d"):format(row, row), "--", relpath },
+        { cwd = root_dir }
+    )
+        :wait()
+
+    if blame_res.code ~= 0 then
+        vim.notify(("ls-tree failed for %s"):format(relpath), vim.log.levels.ERROR)
+        return
+    end
+
+    print(blame_res.stdout)
+end
+
 vim.api.nvim_create_user_command("GitDiff", function(cmd)
     git_diff(cmd.fargs[1])
 end, { nargs = "*", desc = "Diff current buffer with given Git ref" })
 
+vim.api.nvim_create_user_command("GitBlame", function(cmd)
+    git_blame(cmd.fargs[1])
+end, { nargs = "*", desc = "Git blame current line with giver Git ref" })
+
 local opts = { noremap = true, silent = true }
+
+vim.keymap.set({ "n", "v" }, "gh", ":diffget LOCAL<cr>", opts)
+vim.keymap.set({ "n", "v" }, "gl", ":diffget REMOTE<cr>", opts)
 
 vim.keymap.set("n", "<leader>gd", git_diff, opts)
 vim.keymap.set("n", "<leader>gD", function()
@@ -102,5 +142,8 @@ vim.keymap.set("n", "<leader>gD", function()
     git_diff(ref)
 end, opts)
 
-vim.keymap.set({ "n", "v" }, "gh", ":diffget LOCAL<cr>", opts)
-vim.keymap.set({ "n", "v" }, "gl", ":diffget REMOTE<cr>", opts)
+vim.keymap.set("n", "<leader>gB", function()
+    local ref = vim.fn.input "ref> "
+    git_blame(ref)
+end, opts)
+vim.keymap.set("n", "<leader>gb", git_blame, opts)
