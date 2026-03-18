@@ -5,54 +5,19 @@ local group = vim.api.nvim_create_augroup("user.statusline", { clear = true })
 ---@return string
 local function filepath()
     local path = vim.fn.expand "%:p:~"
-
     if #path == 0 then
         return "[No Name]"
     end
-
     path = utils.shorten_path(path, vim.o.columns / 2)
-
     local name = vim.fn.expand "%"
     local is_new_file = name ~= "" and vim.bo.buftype == "" and vim.fn.filereadable(name) == 0
-
     return "[" .. path .. (is_new_file and "][New]" or "]") .. "%r%m"
 end
 
 -- LSP DIAGNOSTICS
 ---@return string
 local function lsp_diagnostics()
-    local sev = vim.diagnostic.severity
-    local levels = {
-        error = sev.ERROR,
-        warn = sev.WARN,
-        info = sev.INFO,
-        hint = sev.HINT,
-    }
-
-    local counts = {}
-    for k, level in pairs(levels) do
-        counts[k] = vim.tbl_count(vim.diagnostic.get(0, { severity = level }))
-    end
-
-    local error = ""
-    local warn = ""
-    local hint = ""
-    local info = ""
-
-    if counts.error > 0 then
-        error = " %#DiagnosticSignError#E" .. counts.error
-    end
-    if counts.warn > 0 then
-        warn = " %#DiagnosticSignWarn#W" .. counts.warn
-    end
-    if counts.hint > 0 then
-        hint = " %#DiagnosticSignHint#H" .. counts.hint
-    end
-    if counts.info > 0 then
-        info = " %#DiagnosticSignInfo#I" .. counts.info
-    end
-
-    return error .. warn .. hint .. info .. "%##"
+    return vim.diagnostic.status(0)
 end
 
 -- CURSOR LOCATION
@@ -60,7 +25,7 @@ end
 local function location()
     local col = vim.fn.virtcol "."
     local row = vim.fn.line "."
-    return string.format("[%3d:%-3d]", row, col)
+    return string.format("[%4d:%-4d]", row, col)
 end
 
 -- GIT DIFF
@@ -174,15 +139,6 @@ local function stop_animation()
     loader_idx = 1
 end
 
----@return string
-local function lsp_progress()
-    if not lsp_loading and #vim.lsp.get_clients() > 0 then
-        lsp_loading = true
-        start_animation()
-    end
-    return lsp_loading and loader[loader_idx] or ""
-end
-
 vim.api.nvim_create_autocmd("LspProgress", {
     group = group,
     pattern = "*",
@@ -199,6 +155,17 @@ vim.api.nvim_create_autocmd("LspProgress", {
     end,
 })
 
+---@return string
+local function lsp_progress()
+    if not lsp_loading and #vim.lsp.get_clients() > 0 then
+        lsp_loading = true
+        start_animation()
+    end
+    return lsp_loading and loader[loader_idx] or ""
+end
+
+-- BUILD STATUSLINE
+
 StatusLine = {}
 
 ---@return string
@@ -210,13 +177,8 @@ function StatusLine.build_statusline()
         "%=",
         lsp_loading and lsp_progress() or lsp_diagnostics(),
         "  ",
-        location(),
+        location()
     }
 end
 
-vim.api.nvim_create_autocmd({ "WinEnter", "BufEnter", "InsertLeave", "DiagnosticChanged" }, {
-    group = group,
-    callback = function()
-        vim.opt.statusline = "%!v:lua.StatusLine.build_statusline()"
-    end,
-})
+vim.opt.statusline = "%!v:lua.StatusLine.build_statusline()"
