@@ -9,6 +9,10 @@ llama-server \
     --host $host \
     --port $port \
     --models-dir ~/llms \
+    --models-max 2 \
     --n-gpu-layers 99 \
+    --threads 8 \
     --ctx-size 0 \
-    --flash-attn 1
+    --mlock \
+    --flash-attn 1 \
+    --chat-template-kwargs '{"enable_thinking":true}'
