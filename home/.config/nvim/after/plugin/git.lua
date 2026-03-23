@@ -105,15 +105,12 @@ local function git_blame(ref)
     end
 
     local relpath = fullpath:sub(#root_dir + 2)
-
     local row = unpack(vim.api.nvim_win_get_cursor(0))
-    row = row - 1
-
-    local blame_res = vim.system(
+    local blame_obj = vim.system(
         { "git", "blame", ref, ("-L%d,%d"):format(row, row), "--", relpath },
         { cwd = root_dir }
     )
-        :wait()
+    local blame_res = blame_obj:wait()
 
     if blame_res.code ~= 0 then
         vim.notify(("ls-tree failed for %s"):format(relpath), vim.log.levels.ERROR)
