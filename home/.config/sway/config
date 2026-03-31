@@ -122,8 +122,7 @@ bindsym $mod+b exec $browser
 bindsym $mod+Shift+q kill
 bindsym $mod+d exec $menu
 
-bindsym $mod+p exec 1password
-bindsym Ctrl+Shift+space exec 1password --quick-access
+bindsym $mod+p exec 1password --quick-access
 
 bindsym $mod+z splith
 bindsym $mod+v splitv

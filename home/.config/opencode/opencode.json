@@ -14,8 +14,8 @@
                 "baseURL": "http://localhost:8012"
             },
             "models": {
-                "local": {
-                    "name": "local"
+                "Qwen3.5-2B-Q4_0": {
+                    "name": "Qwen3.5-2B-Q4_0"
                 }
             }
         }

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+import sys
 import json
 import os
 import subprocess
-import sys
 import urllib.request
 from typing import Any
 
@@ -15,33 +15,30 @@ RED = "\033[31m"
 MODEL = "Qwen3.5-2B-Q8_0"
 API_URL = "http://localhost:8012/v1/chat/completions"
 SYSTEM_PROMPT = """
-You are a quick working expert codebase explorer and search expert without any bullshit.
+You are a fast, highly efficient codebase explorer and search expert. Use your tools to investigate the codebase based on the user's request. 
 
-<Rule>Use your tools to investigate the code based on the user's request.
-<Rule>Always generate multiple tool calls at once, never only one.
-<Rule>Be quick with your actions, try to search for exact thing the user wants to find.
-<Rule>Preferably, navigate around codebase with grep_search tools first, before reading or listing files for more narrow approach.
-<Rule>Be precise when writing line numbers as they need to match the actual line the code is at.
-<Rule>Always finish your reporting with the report_findings tool, with ALL the locations of what you have found in your analysis as entries.
-<Rule>Do not write any summaries, just go straight to executing report_findings tool once you are done searching.
+<rules>
+  <rule>Be extremely fast. Minimize tool usage by choosing the most direct path to the answer.</rule>
+  <rule>Unless the user specifies a particular file, start with a broad `grep_search` (including README, package.json, pyproject.toml, etc.) to understand project structure.</rule>
+  <rule>If a search returns too many results, refine your query rather than reading through massive logs.</rule>
+  <rule>Prefer `grep_search` for navigation. Only read full files when you have narrowed down the exact location(s).</rule>
+  <rule>Never search for the exact same term twice. Always adjust your strategy and move forward.</rule>
+  <rule>Be precise with line numbers—they must match the actual code exactly.</rule>
+  <rule>If you cannot find exactly what was asked, identify the closest relevant locations with clear descriptions and immediately finish.</rule>
+  <rule>Do not summarize, explain, or chat. Execute your searches silently.</rule>
+</rules>
+
+<output>
+  CRITICAL: When your exploration is complete, you must trigger the `write_report` tool immediately. 
+
+  DO NOT output any conversational text. 
+  DO NOT summarize your findings in the chat. 
+  DO NOT explain how the code works. 
+
+  If your final response contains standard text instead of a direct tool call, you have failed the instructions. Respond ONLY with the `write_report` tool containing ALL discovered locations.
+</output>
 """
 TOOLS = [
-    # {
-    #     "type": "function",
-    #     "function": {
-    #         "name": "list_files",
-    #         "description": "List all files in a directory",
-    #         "parameters": {
-    #             "type": "object",
-    #             "properties": {
-    #                 "path": {
-    #                     "type": "string",
-    #                     "description": "Relative path to directory. Defaults to project root if not provided.",
-    #                 }
-    #             },
-    #         },
-    #     },
-    # },
     {
         "type": "function",
         "function": {
@@ -49,17 +46,17 @@ TOOLS = [
             "description": "Read a file by path, start line number and line count. Useful if you already know the line number of search from eg. grep_search, but want a bit more context.",
             "parameters": {
                 "type": "object",
-                "required": ["path", "start_line_number", "line_count"],
+                "required": ["path", "offset", "limit"],
                 "properties": {
                     "path": {
                         "type": "string",
                         "description": "Path relative to project root, no leading slash.",
                     },
-                    "start_line_number": {
+                    "offset": {
                         "type": "integer",
                         "description": "Start line number to read from.",
                     },
-                    "line_count": {
+                    "limit": {
                         "type": "integer",
                         "description": "Number of lines to read.",
                     },
@@ -67,36 +64,23 @@ TOOLS = [
             },
         },
     },
-    # {
-    #     "type": "function",
-    #     "function": {
-    #         "name": "find_file",
-    #         "description": "Find a files by pattern",
-    #         "parameters": {
-    #             "type": "object",
-    #             "required": ["path"],
-    #             "properties": {
-    #                 "pattern": {
-    #                     "type": "string",
-    #                     "description": "Pattern to search for in file names in the entire project.",
-    #                 },
-    #             },
-    #         },
-    #     },
-    # },
     {
         "type": "function",
         "function": {
             "name": "grep_search",
-            "description": "Search for a pattern in current project. This will give you all occurences of the pattern in the current project in all the file names and their content.",
+            "description": "Search for a file or content with a grep pattern in the current project. This will give you all occurences of the pattern in the current project in all the file names and their content.",
             "parameters": {
                 "type": "object",
-                "required": ["pattern"],
+                "required": ["pattern", "limit"],
                 "properties": {
                     "pattern": {
                         "type": "string",
-                        "description": "Pattern to search for.",
-                    }
+                        "description": "Pattern to search for in the current project and directory only.",
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Controls how many results to show.",
+                    },
                 },
             },
         },
@@ -104,7 +88,7 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "report_findings",
+            "name": "write_report",
             "description": "Create a report with a list of all entries. Entries need to contain all of the locations you have found during your search.",
             "parameters": {
                 "type": "object",
@@ -134,91 +118,64 @@ TOOLS = [
         },
     },
 ]
+FD_ARGS = [
+    "--type=f",
+    "--type=l",
+    "--hidden",
+    "--follow",
+    "--exclude=.git",
+]
+RG_ARGS = [
+    "--line-number",
+    "--no-heading",
+    "--smart-case",
+    "--hidden",
+    "--glob=!.git",
+]
 
 
 class ToolError(Exception):
     pass
 
 
-def list_files(path: str = ".") -> str:
-    try:
-        clean_path = path.lstrip("/").replace("./", "")
-        return str(os.listdir(clean_path))
-    except FileNotFoundError:
-        raise ToolError(f"Error: Directory '{path}' not found")
-    except NotADirectoryError:
-        raise ToolError(f"Error: '{path}' is not a directory")
+def read_file(path: str, offset: int, limit: int) -> str:
+    if len(path) == 0:
+        raise ToolError("`path` argument cannot be empty")
 
+    path = path.lstrip("/")
 
-def find_file(pattern: str) -> str:
-    proc = subprocess.Popen(
-        [
-            "fd",
-            pattern,
-            "--hidden",
-            "--follow",
-            "--exclude",
-            ".git",
-        ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    stdout, stderr = proc.communicate()
-    if proc.returncode and proc.returncode > 0:
-        raise ToolError(stderr.decode("utf-8"))
-    return stdout.decode("utf-8") if stdout else "find_file: No results"
+    if not os.path.exists(path):
+        raise ToolError(f"File '{path}' does not exist.")
 
-
-def read_file(path: str, start_line_number: int, line_count: int) -> str:
-    proc = subprocess.Popen(
+    awk_result = subprocess.run(
         [
             "awk",
-            f'NR>={start_line_number} && NR<={start_line_number + line_count} {{print NR": "$0}}',
-            path.replace("^/", ""),
+            f'NR>={offset} && NR<={offset + limit} {{print NR": "$0}}',
+            path,
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
+        text=True,
     )
-    stdout, stderr = proc.communicate()
-    if proc.returncode and proc.returncode > 0:
-        raise ToolError(stderr.decode("utf-8"))
-    return stdout.decode("utf-8") if stdout else "No results found."
+    if awk_result.returncode != 0:
+        raise ToolError(awk_result.stderr)
+
+    return awk_result.stdout if awk_result.stdout else "No results found."
 
 
 def grep_search(query: str, limit: int = 10) -> str:
+    if len(query) == 0:
+        raise ToolError("`query` is required and cannot be empty")
+
     results = set()
 
-    try:
-        fd_cmd = [
-            "fd",
-            query,
-            "--type=f",
-            "--hidden",
-            "--exclude=.git",
-        ]
-        fd_proc = subprocess.run(fd_cmd, capture_output=True, text=True)
-        if fd_proc.stdout:
-            for line in fd_proc.stdout.splitlines():
-                results.add(f"{line}:1:0:")
+    fd_result = subprocess.run(["fd", query, *FD_ARGS], capture_output=True, text=True)
+    if fd_result.stdout:
+        for line in fd_result.stdout.splitlines():
+            results.add(line)
 
-    except FileNotFoundError:
-        pass
-
-    rg_cmd = [
-        "rg",
-        query,
-        "--vimgrep",
-        "--line-number",
-        "--column",
-        "--no-heading",
-        "--smart-case",
-        "--hidden",
-        "--glob=!.git",
-    ]
-
-    rg_proc = subprocess.run(rg_cmd, capture_output=True, text=True)
-    if rg_proc.stdout:
-        for line in rg_proc.stdout.splitlines():
+    rg_result = subprocess.run(["rg", query, *RG_ARGS], capture_output=True, text=True)
+    if rg_result.stdout:
+        for line in rg_result.stdout.splitlines():
             results.add(line)
 
     final_list = sorted(list(results))[:limit]
@@ -229,10 +186,16 @@ def grep_search(query: str, limit: int = 10) -> str:
     return "\n".join(final_list)
 
 
-def report_findings(entries: list[dict]) -> str:
+def write_report(entries: list[dict]) -> str:
+    if len(entries) == 0:
+        raise ToolError(
+            "`entries` argument cannot be empty. Provide all the locations you have found that are relevant to the initial request."
+        )
     quickfix = []
     for entry in entries:
         filepath = entry.get("filepath")
+        assert type(filepath) is str
+        filepath = filepath.lstrip("/")
         if not filepath or not os.path.exists(filepath):
             raise ToolError(f"Filepath {filepath} does not exist")
         quickfix.append(
@@ -243,22 +206,14 @@ def report_findings(entries: list[dict]) -> str:
 
 def handle_tool_call(name: str, args: dict[str, Any]) -> str:
     match name:
-        case "list_files":
-            return list_files(args.get("path", "."))
-        case "find_file":
-            return find_file(args["pattern"])
         case "read_file":
-            return read_file(
-                args["path"],
-                args["start_line_number"],
-                args["line_count"],
-            )
+            return read_file(args["path"], args["offset"], args["limit"])
         case "grep_search":
-            return grep_search(args["pattern"])
-        case "report_findings":
-            return report_findings(args["entries"])
+            return grep_search(args["pattern"], args["limit"])
+        case "write_report":
+            return write_report(args["entries"])
         case _:
-            return f"Unknown tool: {name}"
+            assert False
 
 
 def stream_complete(messages: list[dict[str, Any]]) -> dict[str, Any]:
@@ -327,11 +282,11 @@ def stream_complete(messages: list[dict[str, Any]]) -> dict[str, Any]:
             for tc_delta in delta.get("tool_calls", []):
                 idx = tc_delta["index"]
                 if idx not in tool_calls:
-                    tool_calls[idx] = {
-                        "id": tc_delta.get("id", ""),
-                        "type": "function",
-                        "function": {"name": "", "arguments": ""},
-                    }
+                    tool_calls[idx] = dict(
+                        id=tc_delta.get("id", ""),
+                        type="function",
+                        function=dict(name="", arguments=""),
+                    )
                 fun = tc_delta.get("function", {})
                 tool_calls[idx]["function"]["name"] += fun.get("name", "")
                 tool_calls[idx]["function"]["arguments"] += fun.get("arguments", "")
@@ -361,46 +316,40 @@ def run(user_prompt: str) -> str:
         message = choice["message"]
         messages.append(message)
 
-        if choice["finish_reason"] == "stop":
-            messages.append(
-                {
-                    "role": "user",
-                    "content": "You did not call report_findings. Use your tools and provide a report with results of your whole analysis.",
-                }
-            )
-            continue
+        tool_calls = message.get("tool_calls", [])
 
-        for tool_call in message.get("tool_calls", []):
-            name = tool_call["function"]["name"]
-            args = json.loads(tool_call["function"]["arguments"])
+        if choice["finish_reason"] == "stop" and len(tool_calls) == 0:
+            reminder = "You did not call `write_report` tool. Provide all the locations that you know of, that are relevant to the initial request."
+            print(f"{RED}{reminder}{RESET}", flush=True)
+            messages.append(dict(role="user", content=reminder))
+        else:
+            for tool_call in tool_calls:
+                name = tool_call["function"]["name"]
+                args = json.loads(tool_call["function"]["arguments"])
 
-            print(f"{YELLOW}{name}({args}){RESET}", flush=True)
+                print(f"{YELLOW}{name}({args}){RESET}", flush=True)
 
-            try:
-                result = handle_tool_call(name, args)
-            except ToolError as e:
-                print(f"{RED}{e}{RESET}", flush=True)
-                messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call["id"],
-                        "content": str(e),
-                    }
-                )
-            else:
-                if name == "report_findings":
-                    with open("/tmp/qf.txt", "w") as f:
-                        f.write(result)
-                    print(f"{YELLOW}Wrote quickfix list to /tmp/qf.txt{RESET}")
-                    return result
+                try:
+                    result = handle_tool_call(name, args)
+                except ToolError as e:
+                    print(f"{RED}{e}{RESET}", flush=True)
+                    messages.append(
+                        dict(
+                            role="tool",
+                            tool_call_id=tool_call["id"],
+                            content=str(e),
+                        )
+                    )
+                else:
+                    if name == "write_report":
+                        with open("/tmp/qf.txt", "w") as f:
+                            f.write(result)
+                        print(f"{YELLOW}Wrote quickfix list to /tmp/qf.txt{RESET}")
+                        return result
 
-                messages.append(
-                    {
-                        "role": "tool",
-                        "tool_call_id": tool_call["id"],
-                        "content": result,
-                    }
-                )
+                    messages.append(
+                        dict(role="tool", tool_call_id=tool_call["id"], content=result)
+                    )
 
 
 if __name__ == "__main__":

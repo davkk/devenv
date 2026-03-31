@@ -13,6 +13,6 @@ for f in "${FILES[@]}"; do
 done
 
 cd "$DEV_ENV"
-stow -v --target="$HOME" home
+stow -v --no-folding --target="$HOME" home
 
 echo "Dotfiles setup complete!"
