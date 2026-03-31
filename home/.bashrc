@@ -9,6 +9,11 @@ set -o emacs
 bind '"\C-y": accept-line'
 bind '"\C-n": complete'
 
+HISTCONTROL=ignoredups:erasedups
+HISTSIZE=100000
+HISTFILESIZE=100000
+shopt -s histappend
+
 sd() {
     dirs=(~/ ~/git ~/projects ~/work ~/personal ~/university)
     selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60%)
@@ -101,6 +106,8 @@ if command -v luarocks >/dev/null 2>&1; then
     eval $(luarocks path --lua-version 5.1 --no-bin) 2>/dev/null
 fi
 
+# ---- prompt config ----
+
 last_exit=0
 git_info=''
 git_root=''
@@ -115,8 +122,15 @@ _prompt_preexec() {
 }
 trap '_prompt_preexec' DEBUG
 
+PS0='\e]133;C\a'
+
 _prompt_precmd() {
     last_exit=$?
+
+    printf '\e]133;D;%s\a' "$last_exit"
+
+    # real-time history
+    history -a
 
     # execution time
     if (( cmd_start )); then
@@ -134,25 +148,19 @@ _prompt_precmd() {
     git_info=''
     local st
     st=$(git status --porcelain -b 2>/dev/null) || { _build_ps1; return; }
-
     local line=${st%%$'\n'*}
     local branch=${line#\#\# }
     branch=${branch%%...*}
     local ahead=0 behind=0 dirty=''
-
-    # detached HEAD fallback
     if [[ $branch == 'HEAD (no branch)' || $branch == 'No commits yet on '* ]]; then
         branch="@$(git rev-parse --short HEAD 2>/dev/null)"
     fi
-
     [[ $line =~ ahead\ ([0-9]+)  ]] && ahead=${BASH_REMATCH[1]}
     [[ $line =~ behind\ ([0-9]+) ]] && behind=${BASH_REMATCH[1]}
     [[ $st == *$'\n'?* ]] && dirty='*'
-
     git_info=" \[\e[35m\]${branch}${dirty}\[\e[0m\]"
     (( ahead  )) && git_info+="\[\e[36m\] +${ahead}\[\e[0m\]"
     (( behind )) && git_info+="\[\e[36m\] -${behind}\[\e[0m\]"
-
     _build_ps1
 }
 
@@ -168,7 +176,6 @@ _find_git_marker() {
 }
 
 _build_ps1() {
-    # dir
     local d
     local git_marker=$(_find_git_marker "$PWD")
     if [[ -n "$git_marker" ]]; then
@@ -179,7 +186,6 @@ _build_ps1() {
     (( ${#d} > 80 )) && d="${d:0:77}..."
     local prompt_dir="\[\e[1m\]\[\e[34m\]${d}\[\e[0m\]"
 
-    # exec time
     local prompt_time=''
     if (( cmd_duration >= 5 )); then
         local secs=$cmd_duration out=''
@@ -189,13 +195,11 @@ _build_ps1() {
         prompt_time=" \[\e[90m\]${out}${secs}s\[\e[0m\]"
     fi
 
-    # background jobs
     local prompt_jobs=''
     local job_count
     job_count=$(jobs -p 2>/dev/null | wc -l)
     (( job_count > 0 )) && prompt_jobs="\[\e[90m\]+${job_count}\[\e[0m\] "
 
-    # prompt char
     local prompt_char
     if (( last_exit )); then
         prompt_char="\[\e[1m\]\[\e[31m\]%\[\e[0m\]"
@@ -203,7 +207,9 @@ _build_ps1() {
         prompt_char="\[\e[1m\]\[\e[37m\]%\[\e[0m\]"
     fi
 
-    PS1="${prompt_dir}${git_info}${virt_info}${prompt_time}\n${prompt_jobs}${prompt_char} "
+    local osc_a='\[\e]133;A\a\]'
+    local osc_b='\[\e]133;B\a\]'
+    PS1="${osc_a}${prompt_dir}${git_info}${virt_info}${prompt_time}\n${prompt_jobs}${prompt_char} ${osc_b}"
 }
 
 PROMPT_COMMAND='_prompt_precmd'
