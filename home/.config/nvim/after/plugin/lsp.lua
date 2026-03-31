@@ -41,10 +41,7 @@ vim.lsp.config("lua_ls", {
                 disable = { "missing-fields" },
             },
             workspace = {
-                library = {
-                    vim.env.VIMRUNTIME,
-                    "${3rd}/luv/library",
-                },
+                library = vim.api.nvim_get_runtime_file("", true),
                 checkThirdParty = false,
             },
             telemetry = { enable = false },
@@ -69,22 +66,29 @@ vim.lsp.config("zls", {
     },
 })
 
+vim.lsp.config("basedpyright", {
+    settings = {
+        basedpyright = {
+            analysis = {
+                typeCheckingMode = "basic",
+                diagnosticMode = "workspace",
+            },
+        },
+    },
+})
+
 vim.lsp.enable {
     "lua_ls",
     "ts_ls",
-    -- "tsgo",
-    -- "angularls",
     "jsonls",
     "cssls",
     "clangd",
     "ocamllsp",
-    "pyrefly",
+    "basedpyright",
+    "ruff",
     "gopls",
-    "marksman",
-    "texlab",
     "zls",
     "tinymist",
-    "astro",
 }
 
 local callbacks = {

@@ -13,7 +13,7 @@ if ! command -v uv &>/dev/null; then
     pip3 install uv==0.10.9
 fi
 
-for pkg in basedpyright ruff black flake8; do
+for pkg in basedpyright ruff; do
     if ! command -v "$pkg" &>/dev/null; then
         pip3 install "$pkg"
     fi

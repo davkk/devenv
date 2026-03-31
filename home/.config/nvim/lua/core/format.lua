@@ -126,8 +126,11 @@ function M.lsp_format(bufnr)
 
     local params = vim.lsp.util.make_formatting_params()
     vim.lsp.buf_request(bufnr, "textDocument/formatting", params, function(err, result, ctx)
-        if err or not result then
+        if err then
             vim.notify(("LSP formatting failed: %s"):format(err or "Unknown error"), vim.log.levels.ERROR)
+            return
+        end
+        if not result then
             return
         end
         vim.lsp.util.apply_text_edits(
