@@ -23,11 +23,6 @@ thickness = 0.2
 hide_when_typing = true
 
 [[keyboard.bindings]]
-key = "X"
-mods = "Control|Shift"
-action = "ToggleViMode"
-
-[[keyboard.bindings]]
 key = "N"
 mods = "Control|Shift"
 action = "CreateNewWindow"
