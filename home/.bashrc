@@ -15,7 +15,7 @@ HISTFILESIZE=100000
 shopt -s histappend
 
 sd() {
-    dirs=(~/ ~/git ~/projects ~/work ~/personal ~/university)
+    dirs=(~/ ~/git ~/projects ~/work ~/personal)
     selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60%)
     [ -n "$selected" ] && cd $selected || echo "no directory selected"
 }
@@ -183,7 +183,12 @@ _build_ps1() {
     else
         d="${PWD/#$HOME/\~}"
     fi
-    (( ${#d} > 80 )) && d="${d:0:77}..."
+
+    local prompt_ssh=''
+    if [[ -n "${SSH_CLIENT:-}${SSH_TTY:-}" ]]; then
+        prompt_ssh="\[\e[1m\]\[\e[32m\]\h:\[\e[0m\]"
+    fi
+
     local prompt_dir="\[\e[1m\]\[\e[34m\]${d}\[\e[0m\]"
 
     local prompt_time=''
@@ -209,7 +214,7 @@ _build_ps1() {
 
     local osc_a='\[\e]133;A\a\]'
     local osc_b='\[\e]133;B\a\]'
-    PS1="${osc_a}${prompt_dir}${git_info}${virt_info}${prompt_time}\n${prompt_jobs}${prompt_char} ${osc_b}"
+    PS1="${osc_a}${prompt_ssh}${prompt_dir}${git_info}${virt_info}${prompt_time}\n${prompt_jobs}${prompt_char} ${osc_b}"
 }
 
 PROMPT_COMMAND='_prompt_precmd'
