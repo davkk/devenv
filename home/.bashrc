@@ -30,7 +30,6 @@ review() {
 }
 
 alias l="ls --color -lahF --group-directories-first"
-alias tmux="tmux -u"
 
 export XDG_CURRENT_DESKTOP="sway"
 export XDG_SESSION_DESKTOP="sway"
