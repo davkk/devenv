@@ -29,8 +29,8 @@ review() {
     fi
 }
 
-alias l='ls --color -lahF --group-directories-first'
-alias tmux='tmux -u'
+alias l="ls --color -lahF --group-directories-first"
+alias tmux="tmux -u"
 
 export XDG_CURRENT_DESKTOP="sway"
 export XDG_SESSION_DESKTOP="sway"
@@ -109,9 +109,9 @@ fi
 # ---- prompt config ----
 
 last_exit=0
-git_info=''
-git_root=''
-virt_info=''
+git_info=""
+git_root=""
+virt_info=""
 cmd_start=0
 cmd_duration=0
 
@@ -120,14 +120,14 @@ _prompt_preexec() {
     [[ "$BASH_COMMAND" == "_prompt_precmd" ]] && return  # skip PROMPT_COMMAND itself
     cmd_start=$SECONDS
 }
-trap '_prompt_preexec' DEBUG
+trap "_prompt_preexec" DEBUG
 
-PS0='\e]133;C\a'
+PS0="\e]133;C\a"
 
 _prompt_precmd() {
     last_exit=$?
 
-    printf '\e]133;D;%s\a' "$last_exit"
+    printf "\e]133;D;%s\a" "$last_exit"
 
     # real-time history
     history -a
@@ -141,23 +141,23 @@ _prompt_precmd() {
     cmd_start=0
 
     # virtual environment
-    virt_info=''
+    virt_info=""
     [[ -n "$VIRTUAL_ENV" ]] && virt_info=" \[\e[33m\]${VIRTUAL_ENV##*/}\[\e[0m\]"
 
     # git
-    git_info=''
+    git_info=""
     local st
     st=$(git status --porcelain -b 2>/dev/null) || { _build_ps1; return; }
-    local line=${st%%$'\n'*}
+    local line=${st%%$"\n"*}
     local branch=${line#\#\# }
     branch=${branch%%...*}
-    local ahead=0 behind=0 dirty=''
-    if [[ $branch == 'HEAD (no branch)' || $branch == 'No commits yet on '* ]]; then
+    local ahead=0 behind=0 dirty=""
+    if [[ $branch == "HEAD (no branch)" || $branch == "No commits yet on "* ]]; then
         branch="@$(git rev-parse --short HEAD 2>/dev/null)"
     fi
     [[ $line =~ ahead\ ([0-9]+)  ]] && ahead=${BASH_REMATCH[1]}
     [[ $line =~ behind\ ([0-9]+) ]] && behind=${BASH_REMATCH[1]}
-    [[ $st == *$'\n'?* ]] && dirty='*'
+    [[ $st == *$"\n"?* ]] && dirty="*"
     git_info=" \[\e[35m\]${branch}${dirty}\[\e[0m\]"
     (( ahead  )) && git_info+="\[\e[36m\] +${ahead}\[\e[0m\]"
     (( behind )) && git_info+="\[\e[36m\] -${behind}\[\e[0m\]"
@@ -168,7 +168,7 @@ _find_git_marker() {
     local dir="$PWD"
     local path=""
     local part
-    while IFS= read -r -d'/' part; do
+    while IFS= read -r -d"/" part; do
         path="$path/$part"
         [[ -e "$path/.git" ]] && echo "$path" && return 0
     done <<< "${dir#/}/"
@@ -184,37 +184,38 @@ _build_ps1() {
         d="${PWD/#$HOME/\~}"
     fi
 
-    local prompt_ssh=''
-    if [[ -n "${SSH_CLIENT:-}${SSH_TTY:-}" ]]; then
+    local prompt_ssh=""
+    if [[ -n "${SSH_CLIENT:-}${SSH_TTY:-}${SSH_CONNECTION:-}" ]]; then
         prompt_ssh="\[\e[1m\]\[\e[32m\]\h:\[\e[0m\]"
     fi
 
     local prompt_dir="\[\e[1m\]\[\e[34m\]${d}\[\e[0m\]"
 
-    local prompt_time=''
+    local prompt_time=""
     if (( cmd_duration >= 5 )); then
-        local secs=$cmd_duration out=''
+        local secs=$cmd_duration out=""
         (( secs >= 86400 )) && out+="$(( secs/86400 ))d " && secs=$(( secs%86400 ))
         (( secs >= 3600  )) && out+="$(( secs/3600  ))h " && secs=$(( secs%3600  ))
         (( secs >= 60    )) && out+="$(( secs/60    ))m " && secs=$(( secs%60    ))
         prompt_time=" \[\e[90m\]${out}${secs}s\[\e[0m\]"
     fi
 
-    local prompt_jobs=''
+    local prompt_jobs=""
     local job_count
     job_count=$(jobs -p 2>/dev/null | wc -l)
     (( job_count > 0 )) && prompt_jobs="\[\e[90m\]+${job_count}\[\e[0m\] "
 
+    local symbol; (( EUID == 0 )) && symbol="#" || symbol="%"
     local prompt_char
     if (( last_exit )); then
-        prompt_char="\[\e[1m\]\[\e[31m\]%\[\e[0m\]"
+        prompt_char="\[\e[1m\]\[\e[31m\]${symbol}\[\e[0m\]"
     else
-        prompt_char="\[\e[1m\]\[\e[37m\]%\[\e[0m\]"
+        prompt_char="\[\e[1m\]\[\e[37m\]${symbol}\[\e[0m\]"
     fi
 
-    local osc_a='\[\e]133;A\a\]'
-    local osc_b='\[\e]133;B\a\]'
+    local osc_a="\[\e]133;A\a\]"
+    local osc_b="\[\e]133;B\a\]"
     PS1="${osc_a}${prompt_ssh}${prompt_dir}${git_info}${virt_info}${prompt_time}\n${prompt_jobs}${prompt_char} ${osc_b}"
 }
 
-PROMPT_COMMAND='_prompt_precmd'
+PROMPT_COMMAND="_prompt_precmd"
