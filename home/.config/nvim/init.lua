@@ -58,6 +58,8 @@ vim.opt.guicursor:append "t:ver100"
 
 vim.opt.winborder = "solid"
 
+vim.opt.nrformats = "unsigned"
+
 local opts = { noremap = true, silent = true }
 
 vim.keymap.set("n", "<leader>nh", ":nohl<CR>", opts)
