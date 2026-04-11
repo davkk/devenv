@@ -15,28 +15,20 @@ RED = "\033[31m"
 MODEL = "Qwen3.5-2B-Q8_0"
 API_URL = "http://localhost:8012/v1/chat/completions"
 SYSTEM_PROMPT = """
-You are a fast, highly efficient codebase explorer and search expert. Use your tools to investigate the codebase based on the user's request. 
+You are a codebase search tool. Your only job is to find all locations matching the user's request and call `write_report`.
 
 <rules>
-  <rule>Be extremely fast. Minimize tool usage by choosing the most direct path to the answer.</rule>
-  <rule>Unless the user specifies a particular file, start with a broad `grep_search` (including README, package.json, pyproject.toml, etc.) to understand project structure.</rule>
-  <rule>If a search returns too many results, refine your query rather than reading through massive logs.</rule>
-  <rule>Prefer `grep_search` for navigation. Only read full files when you have narrowed down the exact location(s).</rule>
-  <rule>Never search for the exact same term twice. Always adjust your strategy and move forward.</rule>
-  <rule>Be precise with line numbers—they must match the actual code exactly.</rule>
-  <rule>If you cannot find exactly what was asked, identify the closest relevant locations with clear descriptions and immediately finish.</rule>
-  <rule>Do not summarize, explain, or chat. Execute your searches silently.</rule>
+  <rule>Start with ONE broad `grep_search` covering the most likely pattern (e.g. "alloc" for allocations).</rule>
+  <rule>If results are incomplete, do at most ONE or TWO follow-up searches with different patterns.</rule>
+  <rule>Never search for the same pattern twice.</rule>
+  <rule>Do not read files unless grep results are ambiguous about the line content.</rule>
+  <rule>Collect ALL matching lines including column numbers from grep output.</rule>
+  <rule>Call `write_report` immediately once you have enough results. Do not explain or summarize.</rule>
+  <rule>When you feel stuck, call `write_report` with what you have. Partial results are better than looping forever.</rule>
 </rules>
 
-<output>
-  CRITICAL: When your exploration is complete, you must trigger the `write_report` tool immediately. 
-
-  DO NOT output any conversational text. 
-  DO NOT summarize your findings in the chat. 
-  DO NOT explain how the code works. 
-
-  If your final response contains standard text instead of a direct tool call, you have failed the instructions. Respond ONLY with the `write_report` tool containing ALL discovered locations.
-</output>
+The grep output format is: filepath:line:column:content
+Parse this directly to fill `write_report` entries with accurate filepath, line, column, and the matched content as short_description.
 """
 TOOLS = [
     {
@@ -71,15 +63,15 @@ TOOLS = [
             "description": "Search for a file or content with a grep pattern in the current project. This will give you all occurences of the pattern in the current project in all the file names and their content.",
             "parameters": {
                 "type": "object",
-                "required": ["pattern", "limit"],
+                "required": ["pattern"],
                 "properties": {
                     "pattern": {
                         "type": "string",
                         "description": "Pattern to search for in the current project and directory only.",
                     },
-                    "limit": {
-                        "type": "integer",
-                        "description": "Controls how many results to show.",
+                    "path": {
+                        "type": "string",
+                        "description": "Optional. Restrict search to this file or directory path.",
                     },
                 },
             },
@@ -132,6 +124,7 @@ RG_ARGS = [
     "--hidden",
     "--glob=!.git",
 ]
+RG_RESULT_LIMIT = 100
 
 
 class ToolError(Exception):
@@ -162,8 +155,8 @@ def read_file(path: str, offset: int, limit: int) -> str:
     return awk_result.stdout if awk_result.stdout else "No results found."
 
 
-def grep_search(query: str, limit: int = 10) -> str:
-    if len(query) == 0:
+def grep_search(query: str, path: str = "") -> str:
+    if not query:
         raise ToolError("`query` is required and cannot be empty")
 
     results = set()
@@ -173,17 +166,23 @@ def grep_search(query: str, limit: int = 10) -> str:
         for line in fd_result.stdout.splitlines():
             results.add(line)
 
-    rg_result = subprocess.run(["rg", query, *RG_ARGS], capture_output=True, text=True)
+    rg_cmd = ["rg", query, *RG_ARGS]
+    if path:
+        rg_cmd.append(path.lstrip("/"))
+
+    rg_result = subprocess.run(rg_cmd, capture_output=True, text=True)
     if rg_result.stdout:
         for line in rg_result.stdout.splitlines():
             results.add(line)
 
-    final_list = sorted(list(results))[:limit]
+    final_list = sorted(list(results))
+    truncated = len(final_list) > RG_RESULT_LIMIT
 
-    if not final_list:
-        return f"No matches found for '{query}' in paths or content."
+    output = "\n".join(final_list[:RG_RESULT_LIMIT])
+    if truncated:
+        output += "\n[Results truncated at 100 - narrow your pattern]"
 
-    return "\n".join(final_list)
+    return output if output else f"No matches found for '{query}'."
 
 
 def write_report(entries: list[dict]) -> str:
@@ -209,7 +208,7 @@ def handle_tool_call(name: str, args: dict[str, Any]) -> str:
         case "read_file":
             return read_file(args["path"], args["offset"], args["limit"])
         case "grep_search":
-            return grep_search(args["pattern"], args["limit"])
+            return grep_search(args["pattern"], args.get("path", ""))
         case "write_report":
             return write_report(args["entries"])
         case _:
@@ -222,11 +221,11 @@ def stream_complete(messages: list[dict[str, Any]]) -> dict[str, Any]:
         messages=messages,
         tools=TOOLS,
         stream=True,
-        temperature=1.0,
-        top_p=0.95,
-        top_k=20,
+        temperature=0.8,
+        top_p=1.0,
+        top_k=10,
         min_p=0.0,
-        presence_penalty=1.5,
+        presence_penalty=1.0,
     )
     req = urllib.request.Request(
         API_URL,
@@ -306,10 +305,13 @@ def stream_complete(messages: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def run(user_prompt: str) -> str:
-    messages: list[dict[str, Any]] = [
+    messages = [
         dict(role="system", content=SYSTEM_PROMPT),
         dict(role="user", content=user_prompt),
     ]
+
+    seen_calls: set[str] = set()
+    repeat_count: dict[str, int] = {}
 
     while True:
         choice = stream_complete(messages)
@@ -318,40 +320,54 @@ def run(user_prompt: str) -> str:
 
         tool_calls = message.get("tool_calls", [])
 
-        if choice["finish_reason"] == "stop" and len(tool_calls) == 0:
-            reminder = "You did not call `write_report` tool. Provide all the locations that you know of, that are relevant to the initial request."
+        if choice["finish_reason"] == "stop" and not tool_calls:
+            reminder = (
+                "You did not call `write_report`. Call it now with all locations found."
+            )
             print(f"{RED}{reminder}{RESET}", flush=True)
             messages.append(dict(role="user", content=reminder))
-        else:
-            for tool_call in tool_calls:
-                name = tool_call["function"]["name"]
-                args = json.loads(tool_call["function"]["arguments"])
+            continue
 
-                print(f"{YELLOW}{name}({args}){RESET}", flush=True)
+        for tool_call in tool_calls:
+            name = tool_call["function"]["name"]
+            args = json.loads(tool_call["function"]["arguments"])
+            hash = f"{name}:{json.dumps(args, sort_keys=True)}"
 
-                try:
-                    result = handle_tool_call(name, args)
-                except ToolError as e:
-                    print(f"{RED}{e}{RESET}", flush=True)
-                    messages.append(
-                        dict(
-                            role="tool",
-                            tool_call_id=tool_call["id"],
-                            content=str(e),
-                        )
+            if hash in seen_calls:
+                repeat_count[hash] = repeat_count.get(hash, 1) + 1
+                warning = f"You already called {name}({args}) and got results. Do not repeat it. Move on or call `write_report`."
+                print(f"{RED}[REPEAT BLOCKED] {name}({args}){RESET}", flush=True)
+                messages.append(
+                    dict(
+                        role="tool",
+                        tool_call_id=tool_call["id"],
+                        content=warning,
                     )
-                else:
-                    if name == "write_report":
-                        with open("/tmp/qf.txt", "w") as f:
-                            f.write(result)
-                        print(f"{YELLOW}Wrote quickfix list to /tmp/qf.txt{RESET}")
-                        return result
+                )
+                continue
 
-                    messages.append(
-                        dict(role="tool", tool_call_id=tool_call["id"], content=result)
-                    )
+            seen_calls.add(hash)
+            print(f"{YELLOW}{name}({args}){RESET}", flush=True)
+
+            try:
+                result = handle_tool_call(name, args)
+            except ToolError as e:
+                print(f"{RED}{e}{RESET}", flush=True)
+                messages.append(
+                    dict(role="tool", tool_call_id=tool_call["id"], content=str(e))
+                )
+            else:
+                if name == "write_report":
+                    return result
+                messages.append(
+                    dict(role="tool", tool_call_id=tool_call["id"], content=result)
+                )
 
 
 if __name__ == "__main__":
     prompt = " ".join(sys.argv[1:])
-    run(prompt)
+    result = run(prompt)
+
+    with open("/tmp/qf.txt", "w") as f:
+        f.write(result)
+        print(f"{YELLOW}Wrote quickfix list to /tmp/qf.txt{RESET}")
