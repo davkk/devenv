@@ -4,7 +4,7 @@ local function paste(_)
         return vim.split(content, "\n")
     end
 end
-if os.getenv "SSH_CLIENT" ~= nil or os.getenv "SSH_TTY" ~= nil then
+if os.getenv "SSH_CLIENT" ~= nil or os.getenv "SSH_TTY" ~= nil or os.getenv "SSH_CONNECTION" ~= nil then
     local osc52 = require "vim.ui.clipboard.osc52"
     vim.g.clipboard = {
         name = "OSC 52",

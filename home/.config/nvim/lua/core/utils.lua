@@ -74,21 +74,6 @@ function M.tbl_copy(tbl)
     return new
 end
 
----@generic T
----@param original T[]
----@param value T
----@return T | nil
-function M.tbl_append(original, value)
-    if not original then
-        return nil
-    end
-    local new = M.tbl_copy(original)
-    if new then
-        table.insert(new, value)
-    end
-    return new
-end
-
 ---@param source_path string
 function M.add_local_plugin(source_path)
     local name = vim.fn.fnamemodify(source_path, ":t")

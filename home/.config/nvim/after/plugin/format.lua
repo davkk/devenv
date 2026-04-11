@@ -37,11 +37,6 @@ format.config {
     root_markers = { ".clang-format" },
 }
 
--- format.config {
---     cmd = { "ruff", "format", "--force-exclude", "--stdin-filename", utils.relative_path, "-" },
---     filetypes = { "python" },
--- }
-
 format.config {
     cmd = { "zig", "fmt", "--stdin" },
     filetypes = { "zig" },

@@ -23,6 +23,7 @@ treesitter.install {
     "python",
     "angular",
     "zig",
+    "java",
 }
 
 vim.o.foldenable = true
