@@ -8,11 +8,7 @@ port=${2:-8012}
 llama-server \
     --host $host \
     --port $port \
+    --models-preset ~/.config/llama.ini \
     --models-dir ~/llms \
     --models-max 2 \
-    --n-gpu-layers 99 \
-    --threads 8 \
-    --ctx-size 0 \
-    --mlock \
-    --flash-attn 1 \
-    --chat-template-kwargs '{"enable_thinking":true}'
+    --threads 8
