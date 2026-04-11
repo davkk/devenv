@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if [[ -f "$HOME/.ssh/gh" ]] && grep -q "Host github.com" "$HOME/.ssh/config" 2>/dev/null; then
+if [[ -f "$HOME/.ssh/github" ]]; then
     exit 0
 fi
 
@@ -15,18 +15,12 @@ chmod 700 "$SSH_DIR"
 # eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519
 
-if [[ -f "$SSH_DIR/gh" ]]; then
-    chmod 600 "$SSH_DIR/gh"
-fi
-
 if [[ ! -f "$SSH_DIR/config" ]] || ! grep -q "Host github.com" "$SSH_DIR/config"; then
     cat >> "$SSH_DIR/config" << 'EOF'
 
 Host github.com
     HostName github.com
     PreferredAuthentications publickey
-    IdentityFile ~/.ssh/gh
+    IdentityFile ~/.ssh/github
 EOF
 fi
-
-ssh -T git@github.com || true

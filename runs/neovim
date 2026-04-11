@@ -20,8 +20,6 @@ cd "$GIT_DIR/neovim"
 make CMAKE_BUILD_TYPE=Release
 sudo make install
 
-nvim --version
-
 PLUGIN_DIR="$HOME/.config/nvim/pack/vendor/start/quickfill.nvim"
 
 mkdir -p "$PROJECTS_DIR"

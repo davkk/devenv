@@ -20,7 +20,7 @@ set +u
 unset NPM_CONFIG_PREFIX
 . "$NVM_DIR/nvm.sh"
 
-for pkg in typescript-language-server prettier eslint_d biome; do
+for pkg in typescript-language-server prettier eslint_d; do
     if ! command -v "$pkg" &>/dev/null; then
         npm install -g "$pkg"
     fi

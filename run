@@ -38,8 +38,7 @@ log() {
 export OS=$(detect_os)
 
 if [[ "$OS" == "unknown" ]]; then
-    echo "Error: unknown OS"
-    exit 1
+    echo "Warning: unknown OS"
 fi
 
 wait_apt_lock() {

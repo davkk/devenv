@@ -19,5 +19,3 @@ git fetch
 git checkout cb3fad48bb2d366080efa421d8499ec968f60a6c
 
 cargo install --path .
-
-fd --version

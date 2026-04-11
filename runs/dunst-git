@@ -25,5 +25,3 @@ git checkout b790e2a7682096a194307ba93d1f8fe3aef01740
 
 make
 sudo make install
-
-dunst --version
