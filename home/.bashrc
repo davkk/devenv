@@ -96,13 +96,8 @@ if [[ -s "$HOME/.local/nvm/nvm.sh" ]]; then
     . "$NVM_DIR/nvm.sh"
 fi
 
-if command -v direnv >/dev/null 2>&1; then
-    export DIRENV_LOG_FORMAT=
-    eval "$(direnv hook bash)" 2>/dev/null
-fi
-
 if command -v luarocks >/dev/null 2>&1; then
-    eval $(luarocks path --lua-version 5.1 --no-bin) 2>/dev/null
+    eval $(luarocks path --lua-version 5.1 --no-bin 2>/dev/null) 2>/dev/null
 fi
 
 # ---- prompt config ----
@@ -147,7 +142,7 @@ _prompt_precmd() {
     git_info=""
     local st
     st=$(git status --porcelain -b 2>/dev/null) || { _build_ps1; return; }
-    local line=${st%%$"\n"*}
+    IFS= read -r line <<< "$st"
     local branch=${line#\#\# }
     branch=${branch%%...*}
     local ahead=0 behind=0 dirty=""
@@ -218,3 +213,8 @@ _build_ps1() {
 }
 
 PROMPT_COMMAND="_prompt_precmd"
+
+if command -v direnv >/dev/null 2>&1; then
+    export DIRENV_LOG_FORMAT=
+    eval "$(direnv hook bash 2>/dev/null)" 2>/dev/null
+fi
