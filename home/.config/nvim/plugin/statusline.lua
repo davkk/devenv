@@ -1,26 +1,44 @@
-local utils = require "core.utils"
 local group = vim.api.nvim_create_augroup("user.statusline", { clear = true })
 
--- FILE PATH
+---@param path string
+---@param max_len number
+---@return string
+local function shorten_path(path, max_len)
+    local len = #path
+    local sep = package.config:sub(1, 1)
+    if len <= max_len then
+        return path
+    end
+    local segments = vim.split(path, sep)
+    for idx = 1, #segments - 1 do
+        if len <= max_len then
+            break
+        end
+        local segment = segments[idx]
+        local shortened = segment:sub(1, vim.startswith(segment, ".") and 2 or 1)
+        segments[idx] = shortened
+        len = len - (#segment - #shortened)
+    end
+    return table.concat(segments, sep)
+end
+
 ---@return string
 local function filepath()
     local path = vim.fn.expand "%:p:~"
     if #path == 0 then
         return "[No Name]"
     end
-    path = utils.shorten_path(path, vim.o.columns / 2)
+    path = shorten_path(path, vim.o.columns / 2)
     local name = vim.fn.expand "%"
     local is_new_file = name ~= "" and vim.bo.buftype == "" and vim.fn.filereadable(name) == 0
     return "[" .. path .. (is_new_file and "][New]" or "]") .. "%r%m"
 end
 
--- LSP DIAGNOSTICS
 ---@return string
 local function lsp_diagnostics()
     return vim.diagnostic.status(0)
 end
 
--- CURSOR LOCATION
 ---@return string
 local function location()
     local col = vim.fn.virtcol "."
@@ -28,7 +46,6 @@ local function location()
     return string.format("[%4d:%-4d]", row, col)
 end
 
--- GIT DIFF
 ---@param output string
 ---@return string
 local function parse_shortstat(output)
@@ -105,80 +122,17 @@ local function git_changes()
     end
 end
 
--- LSP PROGRESS LOADER
-local loader = { "∙  ", "∙∙ ", "∙∙∙", " ∙∙", "  ∙", "  " }
-local loader_idx = 1
-local loader_timer = nil
-local lsp_loading = false
-
-local function start_animation()
-    if loader_timer then
-        return
-    end
-    loader_timer = vim.uv.new_timer()
-    if loader_timer ~= nil then
-        loader_timer:start(
-            0,
-            120,
-            vim.schedule_wrap(function()
-                if lsp_loading then
-                    loader_idx = (loader_idx % #loader) + 1
-                    vim.cmd.redrawstatus()
-                end
-            end)
-        )
-    end
-end
-
-local function stop_animation()
-    if loader_timer then
-        loader_timer:stop()
-        loader_timer:close()
-        loader_timer = nil
-    end
-    loader_idx = 1
-end
-
-vim.api.nvim_create_autocmd("LspProgress", {
-    group = group,
-    pattern = "*",
-    callback = function(args)
-        local value = args.data.params.value
-        if value.kind == "begin" then
-            lsp_loading = true
-            start_animation()
-        elseif value.kind == "end" then
-            lsp_loading = false
-            stop_animation()
-            vim.cmd.redrawstatus()
-        end
-    end,
-})
-
 ---@return string
-local function lsp_progress()
-    if not lsp_loading and #vim.lsp.get_clients() > 0 then
-        lsp_loading = true
-        start_animation()
-    end
-    return lsp_loading and loader[loader_idx] or ""
-end
-
--- BUILD STATUSLINE
-
-StatusLine = {}
-
----@return string
-function StatusLine.build_statusline()
+function Statusline()
     return table.concat {
         filepath(),
         "  ",
         git_changes(),
         "%=",
-        lsp_loading and lsp_progress() or lsp_diagnostics(),
+        lsp_diagnostics(),
         "  ",
-        location()
+        location(),
     }
 end
 
-vim.opt.statusline = "%!v:lua.StatusLine.build_statusline()"
+vim.o.statusline = "%!v:lua.Statusline()"

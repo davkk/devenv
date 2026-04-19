@@ -6,8 +6,6 @@ export HYPHEN_INSENSITIVE=false
 export WORDCHARS=
 
 set -o emacs
-bind '"\C-y": accept-line'
-bind '"\C-n": complete'
 
 HISTCONTROL=ignoredups:erasedups
 HISTSIZE=100000

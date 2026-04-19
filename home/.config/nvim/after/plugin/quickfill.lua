@@ -9,7 +9,7 @@ vim.keymap.set("i", "<C-space>", "<Plug>(quickfill-trigger)")
 ---@type quickfill.Config
 vim.g.quickfill = {
     url = "http://localhost:8012",
-    model = "sweep-next-edit-0.5b.q8_0",
+    model = "sweep-next-edit-1.5b.q8_0.v2",
     chunk_lines = 4,
     max_extra_chunks = 3,
     n_suffix = 8,

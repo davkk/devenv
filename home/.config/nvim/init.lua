@@ -56,13 +56,30 @@ vim.opt.diffopt:append "algorithm:histogram"
 
 vim.opt.guicursor:append "t:ver100"
 
-vim.opt.winborder = "solid"
+vim.o.winborder = "solid"
 
-vim.opt.nrformats = "unsigned"
+vim.o.nrformats = "unsigned"
+vim.o.exrc = true
+
+vim.o.autocomplete = false
+vim.o.autocompletedelay = 100
+vim.opt.complete:append "o"
+vim.opt.completeopt = { "menu", "menuone", "noinsert", "popup", "fuzzy" }
+
+vim.opt.wildmode = { "noselect", "full:full" }
+vim.opt.wildoptions = { "pum", "fuzzy", "tagfile" }
+vim.o.pumheight = 10
+vim.o.pumblend = 5
+
+vim.g.netrw_banner = 0
+vim.g.netrw_liststyle = 0
+vim.g.netrw_cursor = 0
+vim.g.netrw_altfile = 1
+vim.g.netrw_sort_sequence = [[[\/]$,*]]
+
+vim.opt.guicursor:append "t:blinkon0-TermCursor"
 
 local opts = { noremap = true, silent = true }
-
-vim.keymap.set("n", "<leader>nh", ":nohl<CR>", opts)
 
 vim.keymap.set({ "n", "v" }, "<leader>d", [["_d]], opts)
 
@@ -94,6 +111,55 @@ vim.keymap.set("n", "<right>", "gt", opts)
 vim.keymap.set({ "n", "v" }, "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set({ "n", "v" }, "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
+vim.keymap.set("n", "<C-e>", function()
+    if vim.bo.filetype == "netrw" then
+        vim.cmd.Rexplore()
+    else
+        local filename = vim.fn.expand "%:p:t"
+        vim.cmd.Explore()
+        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        for idx, file in ipairs(lines) do
+            if file == filename then
+                vim.api.nvim_win_set_cursor(0, { idx, 0 })
+                break
+            end
+        end
+    end
+end, opts)
+
+vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", opts)
+vim.keymap.set("n", "<leader>st", function()
+    vim.cmd.new()
+    vim.api.nvim_win_set_height(0, math.floor(vim.o.lines * 0.3))
+    vim.wo.winfixheight = true
+    vim.cmd.term()
+end, opts)
+
+local function open_notes()
+    local basename = vim.fs.basename(vim.fn.getcwd())
+    local notes_path = vim.fs.joinpath(vim.env.HOME, "notes", basename .. ".md")
+    vim.cmd("tab drop " .. notes_path)
+end
+vim.keymap.set("n", "<leader>on", open_notes, { silent = true })
+vim.api.nvim_create_user_command("Notes", open_notes, {})
+
+vim.api.nvim_create_user_command("TrimWhitespace", function()
+    vim.cmd [[%s/\s\+$//e]]
+end, {})
+
+vim.api.nvim_create_autocmd("TermOpen", {
+    group = vim.api.nvim_create_augroup("user.terminal", {}),
+    callback = function()
+        vim.opt_local.relativenumber = false
+        vim.opt_local.number = false
+        vim.opt_local.signcolumn = "no"
+        vim.opt_local.scrolloff = 0
+        vim.opt_local.sidescrolloff = 0
+        vim.opt_local.whichwrap:append "h"
+        vim.opt_local.whichwrap:append "l"
+    end,
+})
+
 vim.api.nvim_create_autocmd("TextYankPost", {
     group = vim.api.nvim_create_augroup("user.yank", { clear = true }),
     desc = "Highlight selection on yank",
@@ -103,13 +169,28 @@ vim.api.nvim_create_autocmd("TextYankPost", {
     end,
 })
 
-vim.api.nvim_create_user_command("TrimWhitespace", function()
-    vim.cmd [[%s/\s\+$//e]]
-end, {})
-
 vim.filetype.add {
     extension = {
         ["hip"] = "cuda",
         ["tex"] = "tex",
     },
 }
+
+local osc52 = require "vim.ui.clipboard.osc52"
+local function paste()
+    local content = vim.fn.getreg '"'
+    return vim.split(content, "\n")
+end
+vim.g.clipboard = {
+    name = "OSC 52",
+    copy = {
+        ["+"] = osc52.copy "+",
+        ["*"] = osc52.copy "*",
+    },
+    paste = {
+        ["+"] = paste,
+        ["*"] = paste,
+    },
+}
+
+require("vim._core.ui2").enable({ enable = true })

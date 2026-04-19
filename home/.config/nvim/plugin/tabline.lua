@@ -28,7 +28,7 @@ end
 
 local linepos = 1
 
-function Tabline.build_tabline()
+function Tabline()
     local line = ""
     local hlsel = "%#TabLineSel#"
     local hlline = "%#TabLine#"
@@ -55,4 +55,4 @@ function Tabline.build_tabline()
     return hlline .. line:sub(linepos, linepos + cols + #hlsel + #hlline - 1) .. "%#TabLineFill#"
 end
 
-vim.opt.tabline = "%!v:lua.Tabline.build_tabline()"
+vim.o.tabline = "%!v:lua.Tabline()"

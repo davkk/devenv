@@ -1,4 +1,3 @@
-local set = vim.opt_local
-set.wrap = true
-set.spell = true
-set.spelllang = { "en" }
+vim.opt_local.wrap = true
+vim.opt_local.spell = true
+vim.opt_local.spelllang = { "en" }

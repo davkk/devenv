@@ -24,10 +24,10 @@ FindFunc = function(cmdarg)
     end
 end
 
-vim.opt.findfunc = "v:lua.FindFunc"
+vim.o.findfunc = "v:lua.FindFunc"
 
 if vim.fn.executable "rg" == 1 then
-    vim.opt.grepprg = table.concat({
+    vim.o.grepprg = table.concat({
         "rg",
         "--vimgrep",
         "--no-heading",
@@ -53,7 +53,11 @@ vim.keymap.set({ "n", "v" }, "<leader>gw", function()
     end
     input = input:gsub("%%", "\\%%")
     input = input:gsub("#", "\\#")
-    vim.cmd("sil! gr! -U --fixed-strings -- " .. vim.fn.shellescape(input))
+    vim.cmd.grep {
+        "-U --fixed-strings -- " .. vim.fn.shellescape(input),
+        bang = true,
+        mods = { silent = true },
+    }
 end, { desc = "grep cword" })
 
 vim.api.nvim_create_autocmd("QuickFixCmdPost", {

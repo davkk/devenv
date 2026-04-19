@@ -1,11 +1,11 @@
-local set = vim.opt_local
-set.shiftwidth = 2
-set.tabstop = 2
-set.softtabstop = 2
-set.iskeyword = vim.api.nvim_get_option_info2("iskeyword", {}).default
+vim.opt_local.iskeyword = vim.api.nvim_get_option_info2("iskeyword", {}).default
 
-local snippet = require "core.snippet"
-snippet.add(
+if vim.fn.executable "clang-format" and vim.fs.root(0, { ".clang-format" }) then
+    vim.opt_local.formatprg = "clang-format -assume-filename %"
+end
+
+local utils = require "utils"
+utils.add_snippet(
     "main",
     [[
 #include <iostream>

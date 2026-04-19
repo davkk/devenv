@@ -36,7 +36,6 @@ vim.api.nvim_create_autocmd("FileType", {
         local ok = pcall(vim.treesitter.start)
         if ok then
             vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-            vim.bo.indentexpr = "v:lua.require('nvim-treesitter').indentexpr()"
         end
     end,
 })
