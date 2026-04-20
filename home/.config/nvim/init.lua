@@ -127,6 +127,14 @@ vim.keymap.set("n", "<C-e>", function()
     end
 end, opts)
 
+vim.keymap.set("c", "<tab>", function()
+    if vim.fn.wildmenumode() == 1 then
+        return "<tab>"
+    end
+    vim.fn.wildtrigger()
+    return ""
+end, { expr = true })
+
 vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", opts)
 vim.keymap.set("n", "<leader>st", function()
     vim.cmd.new()
@@ -148,7 +156,7 @@ vim.api.nvim_create_user_command("TrimWhitespace", function()
 end, {})
 
 vim.api.nvim_create_autocmd("TermOpen", {
-    group = vim.api.nvim_create_augroup("user.terminal", {}),
+    group = vim.api.nvim_create_augroup("user.terminal", { clear = true }),
     callback = function()
         vim.opt_local.relativenumber = false
         vim.opt_local.number = false
@@ -162,7 +170,6 @@ vim.api.nvim_create_autocmd("TermOpen", {
 
 vim.api.nvim_create_autocmd("TextYankPost", {
     group = vim.api.nvim_create_augroup("user.yank", { clear = true }),
-    desc = "Highlight selection on yank",
     pattern = "*",
     callback = function()
         vim.hl.on_yank { timeout = 150 }
@@ -192,5 +199,3 @@ vim.g.clipboard = {
         ["*"] = paste,
     },
 }
-
-require("vim._core.ui2").enable({ enable = true })

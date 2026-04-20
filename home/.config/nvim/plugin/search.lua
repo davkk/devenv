@@ -1,40 +1,23 @@
 local group = vim.api.nvim_create_augroup("user.search", { clear = true })
+local rg_flags = {
+    "--vimgrep",
+    "--color=never",
+    "--no-heading",
+    "--smart-case",
+    "--hidden",
+    "--glob=!.git",
+}
 
 FindFunc = function(cmdarg)
-    local fd_args = {
-        "--type f",
-        "--type l",
-        "--hidden",
-        "--follow",
-        "--exclude .git",
-    }
-
-    local cmd = [[ find . ]]
-    if vim.fn.executable "fd" == 1 then
-        cmd = string.format("fd %s", table.concat(fd_args, " "))
-    elseif vim.fn.executable "fdfind" == 1 then
-        cmd = string.format("fdfind %s", table.concat(fd_args, " "))
-    end
-
+    local cmd = vim.fn.executable "rg" == 1 and ("rg --files %s"):format(table.concat(rg_flags, " ")) or "find ."
     local fnames = vim.fn.systemlist(cmd)
-    if #cmdarg == 0 then
-        return fnames
-    else
-        return vim.fn.matchfuzzy(fnames, cmdarg)
-    end
+    return #cmdarg == 0 and fnames or vim.fn.matchfuzzy(fnames, cmdarg)
 end
 
 vim.o.findfunc = "v:lua.FindFunc"
 
 if vim.fn.executable "rg" == 1 then
-    vim.o.grepprg = table.concat({
-        "rg",
-        "--vimgrep",
-        "--no-heading",
-        "--smart-case",
-        "--hidden",
-        "--glob=!.git",
-    }, " ")
+    vim.o.grepprg = ("rg %s"):format(table.concat(rg_flags, " "))
     vim.opt.grepformat:append "%f:%l:%c:%m"
 end
 
