@@ -155,6 +155,14 @@ vim.api.nvim_create_user_command("TrimWhitespace", function()
     vim.cmd [[%s/\s\+$//e]]
 end, {})
 
+vim.api.nvim_create_autocmd("TextYankPost", {
+    group = vim.api.nvim_create_augroup("user.yank", { clear = true }),
+    pattern = "*",
+    callback = function()
+        vim.hl.on_yank { timeout = 150 }
+    end,
+})
+
 vim.api.nvim_create_autocmd("TermOpen", {
     group = vim.api.nvim_create_augroup("user.terminal", { clear = true }),
     callback = function()
@@ -168,11 +176,12 @@ vim.api.nvim_create_autocmd("TermOpen", {
     end,
 })
 
-vim.api.nvim_create_autocmd("TextYankPost", {
-    group = vim.api.nvim_create_augroup("user.yank", { clear = true }),
-    pattern = "*",
+vim.api.nvim_create_autocmd("CmdlineChanged", {
+    group = vim.api.nvim_create_augroup("user.cmdline", { clear = true }),
     callback = function()
-        vim.hl.on_yank { timeout = 150 }
+        if vim.api.nvim_get_mode().mode == "c" then
+            vim.fn.wildtrigger()
+        end
     end,
 })
 
@@ -241,3 +250,5 @@ vim.g.clipboard = {
         ["*"] = paste,
     },
 }
+
+require("vim._core.ui2").enable { enable = true }

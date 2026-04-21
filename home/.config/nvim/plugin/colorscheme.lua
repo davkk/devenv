@@ -1,4 +1,4 @@
-vim.cmd.colorscheme "default"
+vim.cmd.colorscheme "catppuccin"
 
 local ns = 0
 local none = "NONE"
