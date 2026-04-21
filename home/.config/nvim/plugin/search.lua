@@ -1,47 +1,38 @@
 local group = vim.api.nvim_create_augroup("user.search", { clear = true })
-local rg_flags = {
-    "--vimgrep",
-    "--color=never",
-    "--no-heading",
-    "--smart-case",
-    "--hidden",
-    "--glob=!.git",
-}
+
+local has_rg = vim.fn.executable "rg" == 1
+
+if has_rg then
+    vim.o.grepprg = "rg --vimgrep --color=never --no-heading --smart-case --hidden --glob=!.git"
+    vim.opt.grepformat:prepend "%f:%l:%c:%m"
+end
 
 FindFunc = function(cmdarg)
-    local cmd = vim.fn.executable "rg" == 1 and ("rg --files %s"):format(table.concat(rg_flags, " ")) or "find ."
-    local fnames = vim.fn.systemlist(cmd)
+    local find_cmd = has_rg and vim.o.grepprg .. " --files" or "find . -type f -not -path */.git/*"
+    local fnames = vim.fn.systemlist(find_cmd)
     return #cmdarg == 0 and fnames or vim.fn.matchfuzzy(fnames, cmdarg)
 end
-
 vim.o.findfunc = "v:lua.FindFunc"
-
-if vim.fn.executable "rg" == 1 then
-    vim.o.grepprg = ("rg %s"):format(table.concat(rg_flags, " "))
-    vim.opt.grepformat:append "%f:%l:%c:%m"
-end
 
 vim.keymap.set("n", "<C-f>", ":sil! fin! ", { desc = "find files" })
 vim.keymap.set("n", "<C-b>", ":sil! b! ", { desc = "pick buffer" })
-
 vim.keymap.set("n", "<C-g>", ":sil! gr! ", { desc = "grep" })
-vim.keymap.set({ "n", "v" }, "<leader>gw", function()
-    local input
-    if vim.fn.mode() == "v" or vim.fn.mode() == "V" then
-        vim.cmd.normal [["vy]]
-        local selection = vim.fn.getreg "v"
-        input = string.gsub(selection, "\n", "")
-    else
-        input = vim.fn.expand "<cword>"
-    end
-    input = input:gsub("%%", "\\%%")
-    input = input:gsub("#", "\\#")
-    vim.cmd.grep {
-        "-U --fixed-strings -- " .. vim.fn.shellescape(input),
-        bang = true,
-        mods = { silent = true },
-    }
+
+local function grep(input)
+    local escaped = vim.fn.shellescape(input):gsub("%%", "\\%%"):gsub("#", "\\#")
+    vim.cmd.grep { "-U --fixed-strings -- " .. escaped, bang = true, mods = { silent = true } }
+end
+
+vim.keymap.set("n", "<leader>gw", function()
+    grep(vim.fn.expand "<cword>")
 end, { desc = "grep cword" })
+
+vim.keymap.set("x", "<leader>gw", function()
+    local mode = vim.fn.mode()
+    local lines = vim.fn.getregion(vim.fn.getpos "v", vim.fn.getpos ".", { type = mode })
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "nx", false)
+    grep(vim.trim(table.concat(lines, "\n")))
+end, { desc = "grep selection" })
 
 vim.api.nvim_create_autocmd("QuickFixCmdPost", {
     group = group,
