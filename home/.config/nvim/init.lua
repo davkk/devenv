@@ -176,6 +176,48 @@ vim.api.nvim_create_autocmd("TextYankPost", {
     end,
 })
 
+vim.api.nvim_create_autocmd("BufReadPost", {
+    group = vim.api.nvim_create_augroup("user.indent", { clear = true }),
+    callback = function(ev)
+        if vim.bo[ev.buf].buftype ~= "" then
+            return
+        end
+        local lines = vim.api.nvim_buf_get_lines(ev.buf, 0, -1, false)
+        local tabs, spaces = 0, {}
+        for _, line in ipairs(lines) do
+            if line:match "^\t" then
+                tabs = tabs + 1
+            else
+                local n = #(line:match "^( +)" or "")
+                if n > 0 then
+                    spaces[n] = (spaces[n] or 0) + 1
+                end
+            end
+        end
+        local space_total = vim.iter(vim.tbl_values(spaces)):fold(0, function(a, b)
+            return a + b
+        end)
+        if tabs == 0 and space_total == 0 then
+            return
+        end
+        if tabs > space_total then
+            vim.bo[ev.buf].expandtab = false
+        else
+            local sw = 0
+            for w in pairs(spaces) do
+                local a, b = sw, w
+                while b ~= 0 do
+                    a, b = b, a % b
+                end
+                sw = a
+            end
+            vim.bo[ev.buf].expandtab = true
+            vim.bo[ev.buf].shiftwidth = (sw >= 1 and sw <= 8) and sw or 4
+            vim.bo[ev.buf].tabstop = vim.bo[ev.buf].shiftwidth
+        end
+    end,
+})
+
 vim.filetype.add {
     extension = {
         ["hip"] = "cuda",
