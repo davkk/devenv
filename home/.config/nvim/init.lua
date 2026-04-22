@@ -127,14 +127,6 @@ vim.keymap.set("n", "<C-e>", function()
     end
 end, opts)
 
-vim.keymap.set("c", "<tab>", function()
-    if vim.fn.wildmenumode() == 1 then
-        return "<tab>"
-    end
-    vim.fn.wildtrigger()
-    return ""
-end, { expr = true })
-
 vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", opts)
 vim.keymap.set("n", "<leader>st", function()
     vim.cmd.new()
@@ -176,79 +168,73 @@ vim.api.nvim_create_autocmd("TermOpen", {
     end,
 })
 
-vim.api.nvim_create_autocmd("CmdlineChanged", {
-    group = vim.api.nvim_create_augroup("user.cmdline", { clear = true }),
-    callback = function()
-        if vim.api.nvim_get_mode().mode == "c" then
-            vim.fn.wildtrigger()
-        end
-    end,
-})
-
-vim.api.nvim_create_autocmd("BufReadPost", {
+vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
     group = vim.api.nvim_create_augroup("user.indent", { clear = true }),
     callback = function(ev)
-        if vim.bo[ev.buf].buftype ~= "" then
-            return
-        end
-        local lines = vim.api.nvim_buf_get_lines(ev.buf, 0, -1, false)
-        local tabs, spaces = 0, {}
+        local lines = vim.api.nvim_buf_get_lines(ev.buf, 0, 1024, false)
+        local hard, soft, deltas, n_deltas = 0, 0, {}, 0
+        local cs = vim.bo[ev.buf].commentstring
+        local comment_pat = cs ~= "" and ("^%s*" .. vim.pesc(cs:match "^%S+")) or nil
+        local prev = -1
         for _, line in ipairs(lines) do
-            if line:match "^\t" then
-                tabs = tabs + 1
-            else
-                local n = #(line:match "^( +)" or "")
-                if n > 0 then
-                    spaces[n] = (spaces[n] or 0) + 1
+            if not line:match "^%s*$" and not (comment_pat and line:match(comment_pat)) then
+                if line:sub(1, 1) == "\t" then
+                    hard = hard + 1
+                elseif line:sub(1, 2) == "  " then
+                    soft = soft + 1
+                end
+                local indent = #(line:match "^[ \t]*")
+                if prev >= 0 then
+                    local d = indent - prev
+                    if d > 1 then
+                        deltas[d] = (deltas[d] or 0) + 1
+                        n_deltas = n_deltas + 1
+                    end
+                end
+                prev = indent
+
+                if n_deltas >= 32 and (hard > 3 or soft > 3) then
+                    break
                 end
             end
         end
-        local space_total = vim.iter(vim.tbl_values(spaces)):fold(0, function(a, b)
-            return a + b
-        end)
-        if tabs == 0 and space_total == 0 then
+        if hard == 0 and soft == 0 then
             return
         end
-        if tabs > space_total then
-            vim.bo[ev.buf].expandtab = false
-        else
-            local sw = 0
-            for w in pairs(spaces) do
-                local a, b = sw, w
-                while b ~= 0 do
-                    a, b = b, a % b
-                end
-                sw = a
+        local sw, best = 4, 0
+        for d, n in pairs(deltas) do
+            if n > best then
+                sw, best = d, n
             end
-            vim.bo[ev.buf].expandtab = true
-            vim.bo[ev.buf].shiftwidth = (sw >= 1 and sw <= 8) and sw or 4
-            vim.bo[ev.buf].tabstop = vim.bo[ev.buf].shiftwidth
         end
+        local bo = vim.bo[ev.buf]
+        bo.expandtab = soft >= hard
+        bo.shiftwidth = sw
+        bo.softtabstop = -1
     end,
 })
 
 vim.filetype.add {
     extension = {
         ["hip"] = "cuda",
-        ["tex"] = "tex",
     },
 }
 
-local osc52 = require "vim.ui.clipboard.osc52"
-local function paste()
-    local content = vim.fn.getreg '"'
-    return vim.split(content, "\n")
-end
-vim.g.clipboard = {
-    name = "OSC 52",
-    copy = {
-        ["+"] = osc52.copy "+",
-        ["*"] = osc52.copy "*",
-    },
-    paste = {
-        ["+"] = paste,
-        ["*"] = paste,
-    },
-}
+-- local osc52 = require "vim.ui.clipboard.osc52"
+-- local function paste()
+--     local content = vim.fn.getreg '"'
+--     return vim.split(content, "\n")
+-- end
+-- vim.g.clipboard = {
+--     name = "OSC 52",
+--     copy = {
+--         ["+"] = osc52.copy "+",
+--         ["*"] = osc52.copy "*",
+--     },
+--     paste = {
+--         ["+"] = paste,
+--         ["*"] = paste,
+--     },
+-- }
 
 require("vim._core.ui2").enable { enable = true }
