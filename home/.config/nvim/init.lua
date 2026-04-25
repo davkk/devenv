@@ -1,12 +1,16 @@
 vim.g.mapleader = vim.keycode "<space>"
 
 vim.o.termguicolors = true
+vim.o.exrc = true
 
 vim.o.relativenumber = true
 vim.o.number = true
 
 vim.o.laststatus = 3
+vim.o.statusline = "%<%f %r%m%=%{%v:lua.vim.diagnostic.status()%} %3l:%-2c"
+
 vim.o.signcolumn = "yes"
+vim.o.winborder = "solid"
 
 vim.o.scrolloff = 8
 vim.o.sidescrolloff = 8
@@ -20,14 +24,11 @@ vim.o.breakindent = true
 vim.o.linebreak = true
 vim.o.wrap = false
 
-vim.opt.formatoptions:remove "o"
-vim.opt.formatoptions:remove "t"
-
 vim.o.inccommand = "split"
 vim.o.smartcase = true
 vim.o.ignorecase = true
 
-vim.opt.clipboard:append "unnamedplus"
+vim.o.clipboard = "unnamedplus"
 
 vim.o.splitright = true
 vim.o.splitbelow = true
@@ -37,7 +38,6 @@ vim.opt.isfname:append "@-@"
 
 vim.o.undofile = true
 vim.o.swapfile = false
-vim.o.backup = false
 
 vim.opt.shortmess:append "c"
 
@@ -54,22 +54,20 @@ vim.opt.listchars = {
 vim.opt.diffopt:append "linematch:60"
 vim.opt.diffopt:append "algorithm:histogram"
 
-vim.opt.guicursor:append "t:ver100"
-
-vim.o.winborder = "solid"
+vim.opt.guicursor:append "t:ver100-blinkon0-TermCursor"
 
 vim.o.nrformats = "unsigned"
-vim.o.exrc = true
 
-vim.o.autocomplete = false
-vim.o.autocompletedelay = 100
 vim.opt.complete:append "o"
-vim.opt.completeopt = { "menu", "menuone", "noinsert", "popup", "fuzzy" }
+vim.opt.completeopt:append "menuone"
+vim.opt.completeopt:append "noinsert"
+vim.opt.completeopt:append "fuzzy"
 
-vim.opt.wildmode = { "noselect", "full:full" }
-vim.opt.wildoptions = { "pum", "fuzzy", "tagfile" }
 vim.o.pumheight = 10
 vim.o.pumblend = 5
+
+vim.o.wildmode = "noselect"
+vim.opt.wildoptions:append "fuzzy"
 
 vim.g.netrw_banner = 0
 vim.g.netrw_liststyle = 0
@@ -77,75 +75,137 @@ vim.g.netrw_cursor = 0
 vim.g.netrw_altfile = 1
 vim.g.netrw_sort_sequence = [[[\/]$,*]]
 
-vim.opt.guicursor:append "t:blinkon0-TermCursor"
+vim.o.grepprg = "rg --vimgrep --color=never --no-heading --smart-case --hidden --glob=!.git"
+vim.opt.grepformat:prepend "%f:%l:%c:%m"
+
+FindFunc = function(cmdarg)
+    local find_cmd = vim.o.grepprg .. " --files"
+    local fnames = vim.fn.systemlist(find_cmd)
+    return #cmdarg == 0 and fnames or vim.fn.matchfuzzy(fnames, cmdarg)
+end
+vim.o.findfunc = "v:lua.FindFunc"
+
+vim.keymap.set("n", "<C-f>", ":sil! fin! ", { desc = "find files" })
+vim.keymap.set("n", "<C-b>", ":sil! b! ", { desc = "pick buffer" })
+vim.keymap.set("n", "<C-g>", ":sil! gr! ", { desc = "grep" })
+
+function Format()
+    local formatprg = vim.bo.formatprg
+    if not formatprg or formatprg == "" then
+        return 0
+    end
+    local start_lnum = vim.v.lnum
+    local end_lnum = start_lnum + vim.v.count - 1
+    local lines = vim.api.nvim_buf_get_lines(0, start_lnum - 1, end_lnum, true)
+    local cmd = vim.split(vim.fn.expandcmd(formatprg), " ")
+    local cwd = vim.fs.dirname(vim.api.nvim_buf_get_name(0))
+    local output = vim.system(cmd, { stdin = lines, cwd = cwd }):wait()
+    if output.code ~= 0 then
+        vim.schedule(function()
+            vim.notify(output.stderr, vim.log.levels.ERROR)
+        end)
+        return 0
+    end
+    local formatted = vim.split(output.stdout, "\n", { trimempty = true })
+    vim.api.nvim_buf_set_lines(0, start_lnum - 1, end_lnum, true, formatted)
+    return 0
+end
+vim.bo.formatexpr = "v:lua.Format()"
 
 local opts = { noremap = true, silent = true }
 
-vim.keymap.set({ "n", "v" }, "<leader>d", [["_d]], opts)
-
-vim.keymap.set("v", "<", "<gv", opts)
-vim.keymap.set("v", ">", ">gv", opts)
-
-vim.keymap.set("n", "<C-d>", "<C-d>zz", opts)
-vim.keymap.set("n", "<C-u>", "<C-u>zz", opts)
-vim.keymap.set("n", "{", "{zz", opts)
-vim.keymap.set("n", "}", "}zz", opts)
-vim.keymap.set("n", "n", "nzzzv", opts)
-vim.keymap.set("n", "N", "Nzzzv", opts)
-vim.keymap.set("n", "*", "*zz", opts)
-vim.keymap.set("n", "#", "#zz", opts)
-vim.keymap.set("n", "g*", "g*zz", opts)
-vim.keymap.set("n", "g#", "g#zz", opts)
-vim.keymap.set("n", "G", "Gzz", opts)
-vim.keymap.set("n", "<C-o>", "<C-o>zz", opts)
-vim.keymap.set("n", "<C-i>", "<C-i>zz", opts)
-
-vim.keymap.set("n", "<A-Right>", "<C-w>5>", opts)
-vim.keymap.set("n", "<A-Left>", "<C-w>5<", opts)
-vim.keymap.set("n", "<A-Up>", "<C-w>2+", opts)
-vim.keymap.set("n", "<A-Down>", "<C-w>2-", opts)
-
-vim.keymap.set("n", "<left>", "gT", opts)
-vim.keymap.set("n", "<right>", "gt", opts)
+for _, v in pairs { "<C-d>", "<C-u>", "n", "N", "*", "#", "g*", "g#", "G", "<C-o>", "<C-i>" } do
+    vim.keymap.set("n", v, v .. "zz", opts)
+end
 
 vim.keymap.set({ "n", "v" }, "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set({ "n", "v" }, "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
+vim.keymap.set("n", "<left>", "gT", opts)
+vim.keymap.set("n", "<right>", "gt", opts)
+
+local function grep(input)
+    local escaped = vim.fn.shellescape(input):gsub("%%", "\\%%"):gsub("#", "\\#")
+    vim.cmd.grep { "-U --fixed-strings -- " .. escaped, bang = true, mods = { silent = true } }
+end
+
+vim.keymap.set("n", "<leader>gw", function()
+    grep(vim.fn.expand "<cword>")
+end, opts)
+
+vim.keymap.set("x", "<leader>gw", function()
+    local mode = vim.fn.mode()
+    local lines = vim.fn.getregion(vim.fn.getpos "v", vim.fn.getpos ".", { type = mode })
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "nx", false)
+    grep(vim.trim(table.concat(lines, "\n")))
+end, opts)
+
 vim.keymap.set("n", "<C-e>", function()
     if vim.bo.filetype == "netrw" then
         vim.cmd.Rexplore()
-    else
-        local filename = vim.fn.expand "%:p:t"
-        vim.cmd.Explore()
-        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-        for idx, file in ipairs(lines) do
-            if file == filename then
-                vim.api.nvim_win_set_cursor(0, { idx, 0 })
-                break
-            end
+        return
+    end
+    local filename = vim.fn.expand "%:p:t"
+    vim.cmd.Explore()
+    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    for idx, file in ipairs(lines) do
+        if file == filename then
+            vim.api.nvim_win_set_cursor(0, { idx, 0 })
+            break
         end
     end
 end, opts)
 
-vim.keymap.set("t", "<Esc><Esc>", "<C-\\><C-n>", opts)
+vim.keymap.set("n", "<leader>f", function()
+    if vim.bo.formatprg ~= "" then
+        local view = vim.fn.winsaveview()
+        vim.cmd.normal { "gggqG", bang = true, mods = { silent = true, keepjumps = true } }
+        vim.fn.winrestview(view)
+    else
+        vim.lsp.buf.format()
+    end
+end, opts)
+
+vim.keymap.set("n", "grq", function()
+    vim.diagnostic.setqflist()
+    local sev_order = { E = 1, W = 2, I = 3, H = 4 }
+    local items = vim.fn.getqflist()
+    table.sort(items, function(a, b)
+        local sa, sb = sev_order[a.type] or 5, sev_order[b.type] or 5
+        return sa < sb or (sa == sb and a.lnum < b.lnum)
+    end)
+    vim.fn.setqflist({}, "r", { items = items })
+end, opts)
+vim.keymap.set("n", "grl", vim.diagnostic.setloclist, opts)
+
 vim.keymap.set("n", "<leader>st", function()
     vim.cmd.new()
-    vim.api.nvim_win_set_height(0, math.floor(vim.o.lines * 0.3))
-    vim.wo.winfixheight = true
+    vim.api.nvim_win_set_height(0, math.floor(vim.o.lines * 0.25))
     vim.cmd.term()
 end, opts)
 
-local function open_notes()
+vim.cmd.packadd "cfilter"
+
+vim.keymap.set("n", "<leader>u", function()
+    vim.cmd.packadd "nvim.undotree"
+    vim.cmd.Undotree()
+end)
+
+vim.api.nvim_create_user_command("Notes", function()
     local basename = vim.fs.basename(vim.fn.getcwd())
     local notes_path = vim.fs.joinpath(vim.env.HOME, "notes", basename .. ".md")
     vim.cmd("tab drop " .. notes_path)
-end
-vim.keymap.set("n", "<leader>on", open_notes, { silent = true })
-vim.api.nvim_create_user_command("Notes", open_notes, {})
+end, {})
 
 vim.api.nvim_create_user_command("TrimWhitespace", function()
     vim.cmd [[%s/\s\+$//e]]
 end, {})
+
+vim.api.nvim_create_autocmd("QuickFixCmdPost", {
+    group = vim.api.nvim_create_augroup("user.search", { clear = true }),
+    pattern = { "[^l]*" },
+    command = "cwindow",
+})
 
 vim.api.nvim_create_autocmd("TextYankPost", {
     group = vim.api.nvim_create_augroup("user.yank", { clear = true }),
@@ -168,73 +228,79 @@ vim.api.nvim_create_autocmd("TermOpen", {
     end,
 })
 
-vim.api.nvim_create_autocmd({ "BufReadPost", "BufNewFile" }, {
-    group = vim.api.nvim_create_augroup("user.indent", { clear = true }),
+vim.api.nvim_create_autocmd("LspProgress", {
     callback = function(ev)
-        local lines = vim.api.nvim_buf_get_lines(ev.buf, 0, 1024, false)
-        local hard, soft, deltas, n_deltas = 0, 0, {}, 0
-        local cs = vim.bo[ev.buf].commentstring
-        local comment_pat = cs ~= "" and ("^%s*" .. vim.pesc(cs:match "^%S+")) or nil
-        local prev = -1
-        for _, line in ipairs(lines) do
-            if not line:match "^%s*$" and not (comment_pat and line:match(comment_pat)) then
-                if line:sub(1, 1) == "\t" then
-                    hard = hard + 1
-                elseif line:sub(1, 2) == "  " then
-                    soft = soft + 1
-                end
-                local indent = #(line:match "^[ \t]*")
-                if prev >= 0 then
-                    local d = indent - prev
-                    if d > 1 then
-                        deltas[d] = (deltas[d] or 0) + 1
-                        n_deltas = n_deltas + 1
-                    end
-                end
-                prev = indent
-
-                if n_deltas >= 32 and (hard > 3 or soft > 3) then
-                    break
-                end
-            end
+        local value = ev.data.params.value or {}
+        local msg = value.message or "done"
+        if #msg > 40 then
+            msg = msg:sub(1, 37) .. "..."
         end
-        if hard == 0 and soft == 0 then
-            return
-        end
-        local sw, best = 4, 0
-        for d, n in pairs(deltas) do
-            if n > best then
-                sw, best = d, n
-            end
-        end
-        local bo = vim.bo[ev.buf]
-        bo.expandtab = soft >= hard
-        bo.shiftwidth = sw
-        bo.softtabstop = -1
+        vim.api.nvim_echo({ { msg } }, false, {
+            id = "lsp",
+            kind = "progress",
+            title = value.title,
+            status = value.kind ~= "end" and "running" or "success",
+            percent = value.percentage,
+        })
     end,
 })
 
-vim.filetype.add {
-    extension = {
-        ["hip"] = "cuda",
+vim.api.nvim_create_user_command("ToggleDiagnostics", function()
+    vim.diagnostic.enable(not vim.diagnostic.is_enabled())
+end, {})
+
+vim.diagnostic.config {
+    severity_sort = true,
+    virtual_text = true,
+    float = {
+        source = true,
+        show_header = true,
+        header = "",
+        prefix = "",
     },
 }
 
--- local osc52 = require "vim.ui.clipboard.osc52"
--- local function paste()
---     local content = vim.fn.getreg '"'
---     return vim.split(content, "\n")
--- end
--- vim.g.clipboard = {
---     name = "OSC 52",
---     copy = {
---         ["+"] = osc52.copy "+",
---         ["*"] = osc52.copy "*",
---     },
---     paste = {
---         ["+"] = paste,
---         ["*"] = paste,
---     },
--- }
-
-require("vim._core.ui2").enable { enable = true }
+require("vim._core.ui2").enable {
+    enable = true,
+    msg = {
+        target = "msg",
+        targets = {
+            typed_cmd = "cmd",
+            search_cmd = "cmd",
+            search_count = "cmd",
+            completion = "cmd",
+            wildlist = "cmd",
+            confirm = "cmd",
+            [""] = "msg",
+            empty = "msg",
+            echo = "msg",
+            echomsg = "msg",
+            bufwrite = "msg",
+            undo = "msg",
+            wmsg = "msg",
+            shell_ret = "msg",
+            emsg = "pager",
+            echoerr = "pager",
+            lua_error = "pager",
+            verbose = "pager",
+            progress = "pager",
+            shell_cmd = "pager",
+            shell_out = "pager",
+            shell_err = "pager",
+            list_cmd = "pager",
+            quickfix = "pager",
+            rpc_error = "pager",
+            lua_print = "pager",
+        },
+        cmd = {
+            height = 0.3,
+        },
+        msg = {
+            height = 0.3,
+            timeout = 2000,
+        },
+        pager = {
+            height = 0.5,
+        },
+    },
+}

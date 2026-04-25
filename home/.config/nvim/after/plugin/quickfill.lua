@@ -1,5 +1,12 @@
-local utils = require "core.utils"
-utils.add_local_plugin(vim.fs.joinpath(vim.env.HOME, "projects", "quickfill.nvim"))
+local source_path = vim.fs.joinpath(vim.env.HOME, "projects", "quickfill.nvim")
+local name = vim.fn.fnamemodify(source_path, ":t")
+local path = vim.fs.joinpath(vim.fn.stdpath "data", "site", "pack", "local", "start")
+local target = vim.fs.joinpath(path, name)
+if not vim.uv.fs_stat(target) then
+    local source = vim.fn.fnamemodify(source_path, ":p")
+    vim.fn.mkdir(path, "p")
+    vim.uv.fs_symlink(source, target, { junction = true })
+end
 
 vim.keymap.set("i", "<C-q>", "<Plug>(quickfill-accept)")
 vim.keymap.set("i", "<C-S-q>", "<Plug>(quickfill-accept-replace)")

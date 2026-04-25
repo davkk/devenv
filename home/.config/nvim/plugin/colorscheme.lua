@@ -1,4 +1,4 @@
-vim.cmd.colorscheme "catppuccin"
+vim.cmd.colorscheme "default"
 
 local ns = 0
 local none = "NONE"
@@ -27,6 +27,7 @@ ext("Comment", { italic = true, bold = false })
 ext("LineNr", { fg = Comment.fg })
 ext("SignColumn", { bg = none })
 ext("EndOfBuffer", { fg = Comment.fg })
+set("ModeMsg", { fg = Comment.fg })
 
 local Pmenu = get "Pmenu"
 set("NormalFloat", { bg = Pmenu.bg, blend = 5 })
@@ -43,9 +44,9 @@ set("WinSeparator", { link = "LineNr" })
 set("NonText", { link = "LineNr" })
 
 set("StatusLine", { fg = Comment.fg, bg = none })
+set("StatusLineNC", { link = "StatusLine" })
 set("StatusLineTerm", { link = "StatusLine" })
 set("StatusLineTermNC", { link = "StatusLine" })
-set("ModeMsg", { link = "StatusLine" })
 
 local Normal = get "Normal"
 set("TabLine", { link = "StatusLine" })

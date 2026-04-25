@@ -1,8 +1,6 @@
 vim.pack.add { { src = "https://github.com/nvim-treesitter/nvim-treesitter", version = "main" } }
 
 local treesitter = require "nvim-treesitter"
-
-treesitter.setup { install_dir = vim.fs.joinpath(vim.fn.stdpath "data", "site") }
 treesitter.install {
     "lua",
     "luadoc",
