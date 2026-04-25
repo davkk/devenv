@@ -22,8 +22,9 @@ review() {
     local target=${1:-origin/main}
     local fork=$(git merge-base HEAD $target)
     local files=$(git diff --name-only $fork)
-    if [[ -n "$files" ]]; then
-        nvim -p $(echo "$files") +"tabdo GitDiff $fork" +tabfirst
+    local untracked=$(git ls-files --others --exclude-standard)
+    if [[ -n "$files" || -n "$untracked" ]]; then
+        nvim -p $(echo -e "$files") -p $(echo "$untracked") +"tabdo GitDiff $fork" +tabfirst
     fi
 }
 
