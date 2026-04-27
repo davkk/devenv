@@ -1,13 +1,3 @@
-local source_path = vim.fs.joinpath(vim.env.HOME, "projects", "quickfill.nvim")
-local name = vim.fn.fnamemodify(source_path, ":t")
-local path = vim.fs.joinpath(vim.fn.stdpath "data", "site", "pack", "local", "start")
-local target = vim.fs.joinpath(path, name)
-if not vim.uv.fs_stat(target) then
-    local source = vim.fn.fnamemodify(source_path, ":p")
-    vim.fn.mkdir(path, "p")
-    vim.uv.fs_symlink(source, target, { junction = true })
-end
-
 vim.keymap.set("i", "<C-q>", "<Plug>(quickfill-accept)")
 vim.keymap.set("i", "<C-S-q>", "<Plug>(quickfill-accept-replace)")
 vim.keymap.set("i", "<C-l>", "<Plug>(quickfill-accept-word)")
@@ -16,7 +6,7 @@ vim.keymap.set("i", "<C-space>", "<Plug>(quickfill-trigger)")
 ---@type quickfill.Config
 vim.g.quickfill = {
     url = "http://localhost:8012",
-    model = "sweep-next-edit-1.5b.q8_0.v2",
+    model = "sweep-next-edit-0.5b.q8_0",
     chunk_lines = 4,
     max_extra_chunks = 3,
     n_suffix = 8,

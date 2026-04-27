@@ -49,7 +49,7 @@ export SAVEHIST=$HISTSIZE
 
 export GIT_CONFIG_GLOBAL=$XDG_CONFIG_HOME/.gitconfig
 
-export NVM_DIR="$HOME/.local/nvm"
+export VOLTA_HOME="$HOME/.local/volta"
 export CARGO_HOME="$HOME/.local/cargo"
 export RUSTUP_HOME="$HOME/.local/rustup"
 export OPAM_SWITCH_PREFIX="$HOME/.local/opam"
@@ -65,6 +65,7 @@ export PATH=$PATH:$HOME/.local/rust/bin
 export PATH=$PATH:$HOME/.local/luarocks/bin
 export PATH=$PATH:$HOME/.local/opam/bin
 export PATH=$PATH:$HOME/.local/zvm/bin
+export PATH=$PATH:$VOLTA_HOME/bin
 export PATH=$PATH:$ZVM_HOME/bin
 export PATH=$PATH:$CARGO_HOME/bin
 export PATH=$PATH:$NPM_CONFIG_PREFIX/bin
@@ -88,12 +89,6 @@ export _JAVA_AWT_WM_NONREPARENTING=1
 export SUDO_EDITOR=$(which nvim 2>/dev/null || echo "vim")
 export EDITOR=$(which nvim 2>/dev/null || echo "vim")
 export MANPAGER="$(which nvim 2>/dev/null || echo "vim") +Man!"
-
-if [[ -s "$HOME/.local/nvm/nvm.sh" ]]; then
-    export NVM_DIR="$HOME/.local/nvm"
-    unset NPM_CONFIG_PREFIX
-    . "$NVM_DIR/nvm.sh"
-fi
 
 if command -v luarocks >/dev/null 2>&1; then
     eval $(luarocks path --lua-version 5.1 --no-bin 2>/dev/null) 2>/dev/null

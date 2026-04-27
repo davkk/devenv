@@ -5,14 +5,16 @@ set -euo pipefail
 case "$OS" in
     fedora)
         sudo dnf install -y \
-            sway grimshot grim slurp jq wl-clipboard \
+            gcc-c++ ninja-build \
+            sway i3status grimshot grim slurp jq wl-clipboard \
             git curl wget moreutils make cmake \
             desktop-file-utils parallel tmux \
             stow
         ;;
     ubuntu)
-        sudo apt install -y \
-            sway grimshot grim slurp jq wl-clipboard \
+        sudo apt-get install -y \
+            gcc-c++ ninja-build \
+            sway i3status grimshot grim slurp jq wl-clipboard \
             git curl wget moreutils make cmake \
             desktop-file-utils parallel tmux \
             stow

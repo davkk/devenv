@@ -8,5 +8,5 @@ fi
 
 case "$OS" in
     fedora) sudo dnf install -y ripgrep ;;
-    ubuntu) sudo apt install -y ripgrep ;;
+    ubuntu) sudo apt-get install -y ripgrep ;;
 esac

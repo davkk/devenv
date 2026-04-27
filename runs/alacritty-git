@@ -12,7 +12,7 @@ INSTALL_DIR="$GIT_DIR/alacritty"
 
 case "$OS" in
     fedora) sudo dnf install -y cmake freetype-devel fontconfig-devel libxcb-devel libxkbcommon-devel g++ ;;
-    ubuntu) sudo apt install -y cmake g++ pkg-config libfontconfig1-dev libxcb-xfixes0-dev libxkbcommon-dev python3
+    ubuntu) sudo apt-get install -y cmake g++ pkg-config libfontconfig1-dev libxcb-xfixes0-dev libxkbcommon-dev python3
 esac
 
 if [[ ! -d "$GIT_DIR/alacritty/.git" ]]; then

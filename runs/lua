@@ -8,42 +8,20 @@ GIT_DIR="$HOME/git"
 if ! command -v lua &>/dev/null || ! command -v luarocks &>/dev/null; then
     case "$OS" in
         fedora) sudo dnf install -y lua5.1 luarocks libstdc++-static ;;
-        ubuntu) sudo apt install -y lua5.1 luarocks libstdc++-12-dev ;;
+        ubuntu) sudo apt-get install -y lua5.1 luarocks libstdc++-12-dev ;;
     esac
 fi
 
-if ! command -v luacheck &>/dev/null; then
-    luarocks --local --lua-version=5.1 install luacheck
-fi
-
 if ! command -v stylua &>/dev/null; then
-    mkdir -p "$BIN_DIR"
-    if command -v cargo &>/dev/null; then
-        cargo install stylua --version 2.4.0
-    else
-        TMP_DIR="/tmp/stylua-$$"
-        mkdir -p "$TMP_DIR"
-        wget -O "$TMP_DIR/stylua-linux-x86_64.zip" "https://github.com/JohnnyMorganz/StyLua/releases/download/v2.4.0/stylua-linux-x86_64.zip"
-        unzip -j "$TMP_DIR/stylua-linux-x86_64.zip" -d "$BIN_DIR" "stylua"
-        rm -rf "$TMP_DIR"
-    fi
-fi
-
-if ! command -v busted &>/dev/null; then
-    luarocks --local --lua-version=5.1 install busted
-fi
-
-if ! command -v nlua &>/dev/null; then
-    luarocks --local --lua-version=5.1 install nlua
+    tmp_dir="/tmp/stylua-$$"
+    mkdir -p "$tmp_dir"
+    wget -O "$tmp_dir/stylua-linux-x86_64.zip" "https://github.com/JohnnyMorganz/StyLua/releases/download/v2.4.1/stylua-linux-x86_64.zip"
+    unzip -j "$tmp_dir/stylua-linux-x86_64.zip" -d "$BIN_DIR" "stylua"
+    rm -rf "$tmp_dir"
 fi
 
 if ! command -v lua-language-server &>/dev/null; then
-    mkdir -p "$GIT_DIR" "$BIN_DIR"
-    if [[ ! -d "$GIT_DIR/lua-language-server" ]]; then
-        git clone https://github.com/LuaLS/lua-language-server "$GIT_DIR/lua-language-server"
-    fi
-    cd "$GIT_DIR/lua-language-server"
-    chmod +x make.sh
-    ./make.sh
-    ln -s "$GIT_DIR/lua-language-server/bin/lua-language-server" "$BIN_DIR/lua-language-server"
+    install_dir="$GIT_DIR/lua-language-server"
+    wget "https://github.com/LuaLS/lua-language-server/releases/download/3.18.2/lua-language-server-3.18.2-linux-x64.tar.gz" -O $install_dir
+    ln -fs "$install_dir/bin/lua-language-server" "$BIN_DIR/lua-language-server"
 fi

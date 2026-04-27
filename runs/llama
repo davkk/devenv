@@ -19,6 +19,6 @@ git fetch
 git checkout 35bee031e17ed2b2e8e7278b284a6c8cd120d9f8
 
 rm -rf build
-cmake -B build -DBUILD_SHARED_LIBS=OFF -DLLAMA_MTMD=ON
+cmake -B build -DBUILD_SHARED_LIBS=OFF
 cmake --build build --config Release -j 10
 sudo cmake --install build

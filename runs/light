@@ -2,9 +2,7 @@
 
 set -euo pipefail
 
-if ! command -v light &>/dev/null; then
-    case "$OS" in
-        fedora) sudo dnf install -y light ;;
-        ubuntu) sudo apt install -y light ;;
-    esac
-fi
+case "$OS" in
+    fedora) sudo dnf install -y light ;;
+    ubuntu) sudo apt-get install -y light ;;
+esac

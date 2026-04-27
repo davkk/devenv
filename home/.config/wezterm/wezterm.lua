@@ -3,7 +3,7 @@ local config = wezterm.config_builder()
 local action = wezterm.action
 
 -- startup
-config.default_prog = { "/usr/bin/env", "zsh", "-l" }
+config.default_prog = { "/usr/bin/env", "bash", "-l" }
 
 local gpus = wezterm.gui.enumerate_gpus()
 config.webgpu_preferred_adapter = gpus[1]
@@ -23,15 +23,6 @@ config.window_frame = {
 
 config.skip_close_confirmation_for_processes_named = {}
 config.audible_bell = "Disabled"
-
--- colors
-config.color_scheme = "neovim"
-config.colors = {
-    tab_bar = {
-        inactive_tab_edge = "#000000",
-    },
-}
-
 
 -- fonts
 config.font = wezterm.font_with_fallback { "Iosevka" }

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if ! command -v rot8 > /dev/null 2>&1; then
+    cargo install rot8 --version 1.0.0
+fi

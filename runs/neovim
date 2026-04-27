@@ -2,10 +2,6 @@
 
 set -euo pipefail
 
-if command -v nvim &>/dev/null; then
-    exit 0
-fi
-
 GIT_DIR="$HOME/git"
 PROJECTS_DIR="$HOME/projects"
 
@@ -17,23 +13,23 @@ fi
 
 cd "$GIT_DIR/neovim"
 
-make CMAKE_BUILD_TYPE=Release
+git pull
+make CMAKE_BUILD_TYPE=Release -j10
 sudo make install
 
-PLUGIN_DIR="$HOME/.config/nvim/pack/vendor/start/quickfill.nvim"
+PLUGIN_DIR="$HOME/.local/share/nvim/site/pack/local/start"
+mkdir -p "$PLUGIN_DIR"
 
-mkdir -p "$PROJECTS_DIR"
-
-if [[ ! -d "$PROJECTS_DIR/quickfill.nvim/.git" ]]; then
+if [[ ! -d "$PROJECTS_DIR/quickfill.nvim" ]]; then
     git clone git@github.com:davkk/quickfill.nvim.git "$PROJECTS_DIR/quickfill.nvim"
 fi
 
-cd "$PROJECTS_DIR/quickfill.nvim"
-git pull
+ln -fs "$PROJECTS_DIR/quickfill.nvim" "$PLUGIN_DIR"
 
-mkdir -p "$(dirname "$PLUGIN_DIR")"
-[[ -L "$PLUGIN_DIR" ]] && rm "$PLUGIN_DIR"
-[[ -d "$PLUGIN_DIR" ]] && rm -rf "$PLUGIN_DIR"
-ln -sf "$PROJECTS_DIR/quickfill.nvim" "$PLUGIN_DIR"
-
-npm i -g tree-sitter-cli
+if ! command -v tree-sitter > /dev/null 2>&1; then
+    mkdir -p /tmp/tree-sitter
+    wget https://github.com/tree-sitter/tree-sitter/releases/download/v0.24.7/tree-sitter-linux-x64.gz -O /tmp/tree-sitter/tree-sitter.gz
+    gzip -d /tmp/tree-sitter/tree-sitter.gz -f
+    mv /tmp/tree-sitter/tree-sitter ~/.local/bin/tree-sitter
+    chmod +x ~/.local/bin/tree-sitter
+fi

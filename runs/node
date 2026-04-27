@@ -2,23 +2,23 @@
 
 set -euo pipefail
 
-export NVM_DIR="$HOME/.local/nvm"
-export NPM_CONFIG_PREFIX="$HOME/.local/npm"
-mkdir -p "$NVM_DIR" "$NPM_CONFIG_PREFIX"
-
-if [[ ! -d "$NVM_DIR/versions/node" ]]; then
-    cd "$NVM_DIR"
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/62387b8f92aa012d48202747fd75c40850e5e261/install.sh | bash
-    set +u
-    unset NPM_CONFIG_PREFIX
-    . "$NVM_DIR/nvm.sh"
-    nvm install --lts
-    nvm use --lts
+if ! command -v volta &>/dev/null; then
+    tmp_dir="/tmp/volta"
+    mkdir -p "$tmp_dir"
+    wget "https://github.com/volta-cli/volta/releases/download/v2.0.2/volta-2.0.2-linux.tar.gz" -O "$tmp_dir/volta.tar.gz"
+    tar xf "$tmp_dir/volta.tar.gz" -C "$tmp_dir"
+    mv "$tmp_dir/volta" ~/.local/bin/
+    mv "$tmp_dir/volta-migrate" ~/.local/bin/
+    mv "$tmp_dir/volta-shim" ~/.local/bin/
+    rm -rf "$tmp_dir"
 fi
 
-set +u
-unset NPM_CONFIG_PREFIX
-. "$NVM_DIR/nvm.sh"
+export VOLTA_HOME="$HOME/.local/volta"
+export PATH="$PATH:$VOLTA_HOME/bin"
+
+if ! command -v node &>/dev/null; then
+    volta install node
+fi
 
 for pkg in typescript-language-server prettier eslint_d; do
     if ! command -v "$pkg" &>/dev/null; then
