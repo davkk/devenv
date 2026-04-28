@@ -26,7 +26,7 @@ set $right l
 set $term alacritty
 set $browser zen
 set $menu fuzzel
-set $rotation $HOME/.cargo/bin/rot8 -d eDP-1 --normalization-factor 10 -k &
+set $rotation $HOME/.local/cargo/bin/rot8 -d eDP-1 --normalization-factor 10 -k
 set $wallpaper $HOME/Pictures/wallpaper.jpg
 set $default_light 20
 
@@ -293,9 +293,6 @@ for_window [window_type="menu"] floating enable
 # startup
 ##
 
-exec systemctl --user import-environment DISPLAY WAYLAND_DISPLAY SWAYSOCK
-exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
-
 exec /usr/libexec/xdg-desktop-portal -r &
 exec /usr/bin/lxpolkit &
 exec /usr/libexec/gsd-xsettings &
@@ -304,7 +301,7 @@ exec nm-applet &
 exec blueman-applet &
 exec dunst &
 exec /usr/bin/1password --silent &
-exec $rotation
+exec $rotation &
 
 assign [class="thunderbird"] 5
 

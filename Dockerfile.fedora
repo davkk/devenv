@@ -1,5 +1,5 @@
 # docker build -t devenv-test -f Dockerfile.fedora .
-# docker run --rm -it -v $(pwd):/home/user/devenv devenv-test
+# docker run --rm -it devenv-test
 
 FROM fedora:latest
 

@@ -1,6 +1,5 @@
-# Test environment for dev setup scripts
 # Usage: docker build -t devenv-test-ubuntu -f Dockerfile.ubuntu .
-# docker run --rm -it -v $(pwd):/home/user/devenv devenv-test-ubuntu
+# docker run --rm -it devenv-test-ubuntu
 
 FROM ubuntu:latest
 

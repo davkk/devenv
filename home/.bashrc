@@ -2,19 +2,9 @@ export XDG_CONFIG_HOME=$HOME/.config
 export XDG_CACHE_HOME=$HOME/.cache
 export XDG_DATA_HOME=$HOME/.local/share
 
-export HYPHEN_INSENSITIVE=false
-export WORDCHARS=
-
-set -o emacs
-
-HISTCONTROL=ignoredups:erasedups
-HISTSIZE=100000
-HISTFILESIZE=100000
-shopt -s histappend
-
 sd() {
-    dirs=(~/ ~/git ~/projects ~/work ~/personal)
-    selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60%)
+    local dirs=(~/ ~/git ~/projects ~/work ~/personal)
+    local selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60%)
     [ -n "$selected" ] && cd $selected || echo "no directory selected"
 }
 
@@ -28,21 +18,18 @@ review() {
     fi
 }
 
+nvim() {
+    if [[ -n $NVIM ]]; then
+        command nvim --server $NVIM --remote "${@:-.}"
+    else
+        command nvim "$@"
+    fi
+}
+
 alias l="ls --color -lahF --group-directories-first"
 
-export XDG_CURRENT_DESKTOP="sway"
-export XDG_SESSION_DESKTOP="sway"
-export XDG_CURRENT_SESSION_TYPE="wayland"
-
-export MOZ_ENABLE_WAYLAND=1
-export XCURSOR_SIZE=28
-
-export GDK_BACKEND="wayland,x11"
-
-export QT_QPA_PLATFORM="wayland"
-export QT_QPA_PLATFORMTHEME="qt5ct"
-export QT_ENABLE_HIGHDPI_SCALING=1
-
+shopt -s histappend
+export HISTCONTROL=ignoredups:erasedups
 export HISTFILE=$XDG_DATA_HOME/bash_history
 export HISTSIZE=100000000
 export SAVEHIST=$HISTSIZE
@@ -82,17 +69,12 @@ export FZF_DEFAULT_OPTS="
 --color=pointer:#ffffff,marker:#ffffff,prompt:#ffffff
 --bind ctrl-y:accept
 "
-source <(fzf --bash 2>/dev/null)
 
 export _JAVA_AWT_WM_NONREPARENTING=1
 
 export SUDO_EDITOR=$(which nvim 2>/dev/null || echo "vim")
 export EDITOR=$(which nvim 2>/dev/null || echo "vim")
 export MANPAGER="$(which nvim 2>/dev/null || echo "vim") +Man!"
-
-if command -v luarocks >/dev/null 2>&1; then
-    eval $(luarocks path --lua-version 5.1 --no-bin 2>/dev/null) 2>/dev/null
-fi
 
 # ---- prompt config ----
 
@@ -207,6 +189,14 @@ _build_ps1() {
 }
 
 PROMPT_COMMAND="_prompt_precmd"
+
+# ---- prompt config ----
+
+source <(fzf --bash 2>/dev/null)
+
+if command -v luarocks >/dev/null 2>&1; then
+    eval $(luarocks path --lua-version 5.1 --no-bin 2>/dev/null) 2>/dev/null
+fi
 
 if command -v direnv >/dev/null 2>&1; then
     export DIRENV_LOG_FORMAT=
