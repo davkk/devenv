@@ -69,6 +69,8 @@ vim.o.pumblend = 5
 vim.o.wildmode = "noselect"
 vim.opt.wildoptions:append "fuzzy"
 
+vim.opt.shada:append "!"
+
 vim.g.netrw_banner = 0
 vim.g.netrw_liststyle = 0
 vim.g.netrw_cursor = 0
@@ -185,6 +187,10 @@ vim.keymap.set("n", "<leader>st", function()
     vim.cmd.term()
 end, opts)
 
+for i = 1, 5 do
+    vim.keymap.set("n", "<C-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
+end
+
 vim.cmd.packadd "cfilter"
 
 vim.keymap.set("n", "<leader>u", function()
@@ -201,6 +207,27 @@ end, {})
 vim.api.nvim_create_user_command("TrimWhitespace", function()
     vim.cmd [[%s/\s\+$//e]]
 end, {})
+
+local arglist_key = "ARGLIST_" .. vim.fn.getcwd():gsub("%W", "_"):upper()
+
+vim.api.nvim_create_autocmd("VimEnter", {
+    once = true,
+    callback = function()
+        local l = vim.tbl_filter(function(f)
+            return f:match "%S"
+        end, vim.g[arglist_key] or {})
+        vim.g[arglist_key] = l
+        vim.cmd.argdelete { "*", mods = { silent = true, emsg_silent = true } }
+        pcall(vim.cmd.argadd, { table.concat(vim.tbl_map(vim.fn.fnameescape, l), " ") })
+    end,
+})
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+    once = true,
+    callback = function()
+        vim.g[arglist_key] = vim.fn.argv()
+    end,
+})
 
 vim.api.nvim_create_autocmd("QuickFixCmdPost", {
     group = vim.api.nvim_create_augroup("user.search", { clear = true }),
