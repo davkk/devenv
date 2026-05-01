@@ -8,16 +8,6 @@ sd() {
     [ -n "$selected" ] && cd $selected || echo "no directory selected"
 }
 
-review() {
-    local target=${1:-origin/main}
-    local fork=$(git merge-base HEAD $target)
-    local files=$(git diff --name-only $fork)
-    local untracked=$(git ls-files --others --exclude-standard)
-    if [[ -n "$files" || -n "$untracked" ]]; then
-        nvim -p $(echo -e "$files") -p $(echo "$untracked") +"tabdo GitDiff $fork" +tabfirst
-    fi
-}
-
 nvim() {
     if [[ -n $NVIM ]]; then
         command nvim --server $NVIM --remote "${@:-.}"
