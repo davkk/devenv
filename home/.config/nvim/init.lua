@@ -1,4 +1,5 @@
-vim.g.mapleader = vim.keycode "<space>"
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
 
 vim.o.termguicolors = true
 vim.o.exrc = true
@@ -7,7 +8,6 @@ vim.o.relativenumber = true
 vim.o.number = true
 
 vim.o.laststatus = 3
-vim.o.statusline = "%<%f %r%m%=%{%v:lua.vim.diagnostic.status()%} %3l:%-2c"
 
 vim.o.signcolumn = "yes"
 vim.o.winborder = "solid"
@@ -51,17 +51,14 @@ vim.opt.listchars = {
     nbsp = "␣",
 }
 
-vim.opt.diffopt:append "linematch:60"
-vim.opt.diffopt:append "algorithm:histogram"
+vim.opt.diffopt:append { "linematch:60", "algorithm:histogram" }
 
 vim.opt.guicursor:append "t:ver100-blinkon0-TermCursor"
 
 vim.o.nrformats = "unsigned"
 
 vim.opt.complete:append "o"
-vim.opt.completeopt:append "menuone"
-vim.opt.completeopt:append "noinsert"
-vim.opt.completeopt:append "fuzzy"
+vim.opt.completeopt:append { "menuone", "noinsert", "fuzzy" }
 
 vim.o.pumheight = 10
 vim.o.pumblend = 5
@@ -285,8 +282,7 @@ vim.api.nvim_create_autocmd("TermOpen", {
         vim.opt_local.signcolumn = "no"
         vim.opt_local.scrolloff = 0
         vim.opt_local.sidescrolloff = 0
-        vim.opt_local.whichwrap:append "h"
-        vim.opt_local.whichwrap:append "l"
+        vim.opt_local.whichwrap:append "hl"
     end,
 })
 

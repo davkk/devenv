@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if ! command -v volta &>/dev/null; then
-    tmp_dir="/tmp/volta"
+    tmp_dir="${TMPDIR}/volta"
     mkdir -p "$tmp_dir"
     wget "https://github.com/volta-cli/volta/releases/download/v2.0.2/volta-2.0.2-linux.tar.gz" -O "$tmp_dir/volta.tar.gz"
     tar xf "$tmp_dir/volta.tar.gz" -C "$tmp_dir"

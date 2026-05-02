@@ -13,7 +13,7 @@ if ! command -v lua &>/dev/null || ! command -v luarocks &>/dev/null; then
 fi
 
 if ! command -v stylua &>/dev/null; then
-    tmp_dir="/tmp/stylua-$$"
+    tmp_dir="${TMPDIR}/stylua-$$"
     mkdir -p "$tmp_dir"
     wget -O "$tmp_dir/stylua-linux-x86_64.zip" "https://github.com/JohnnyMorganz/StyLua/releases/download/v2.4.1/stylua-linux-x86_64.zip"
     unzip -j "$tmp_dir/stylua-linux-x86_64.zip" -d "$BIN_DIR" "stylua"
