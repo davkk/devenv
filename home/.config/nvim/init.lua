@@ -70,7 +70,6 @@ vim.o.wildmode = "noselect"
 vim.opt.wildoptions:append "fuzzy"
 
 vim.g.netrw_banner = 0
-vim.g.netrw_liststyle = 0
 vim.g.netrw_cursor = 0
 vim.g.netrw_altfile = 1
 vim.g.netrw_sort_sequence = [[[\/]$,*]]
@@ -110,19 +109,17 @@ function Format()
     vim.api.nvim_buf_set_lines(0, start_lnum - 1, end_lnum, true, formatted)
     return 0
 end
-vim.bo.formatexpr = "v:lua.Format()"
-
-local opts = { noremap = true, silent = true }
+vim.o.formatexpr = "v:lua.Format()"
 
 for _, v in pairs { "<C-d>", "<C-u>", "n", "N", "*", "#", "g*", "g#", "G", "<C-o>", "<C-i>" } do
-    vim.keymap.set("n", v, v .. "zz", opts)
+    vim.keymap.set("n", v, v .. "zz")
 end
 
 vim.keymap.set({ "n", "v" }, "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set({ "n", "v" }, "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
-vim.keymap.set("n", "<left>", "gT", opts)
-vim.keymap.set("n", "<right>", "gt", opts)
+vim.keymap.set("n", "<left>", "gT")
+vim.keymap.set("n", "<right>", "gt")
 
 for i = 1, 5 do
     vim.keymap.set("n", "<M-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
@@ -130,19 +127,19 @@ end
 
 local function grep(input)
     local escaped = vim.fn.shellescape(input):gsub("%%", "\\%%"):gsub("#", "\\#")
-    vim.cmd.grep { "-U --fixed-strings -- " .. escaped, bang = true, mods = { silent = true } }
+    vim.cmd.grep({ "-U --fixed-strings -- " .. escaped, bang = true, mods = { silent = true } })
 end
 
 vim.keymap.set("n", "<leader>gw", function()
     grep(vim.fn.expand "<cword>")
-end, opts)
+end)
 
 vim.keymap.set("x", "<leader>gw", function()
     local mode = vim.fn.mode()
     local lines = vim.fn.getregion(vim.fn.getpos "v", vim.fn.getpos ".", { type = mode })
     vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "nx", false)
     grep(vim.trim(table.concat(lines, "\n")))
-end, opts)
+end)
 
 vim.keymap.set("n", "<C-e>", function()
     if vim.bo.filetype == "netrw" then
@@ -158,7 +155,7 @@ vim.keymap.set("n", "<C-e>", function()
             break
         end
     end
-end, opts)
+end)
 
 vim.keymap.set("n", "<leader>f", function()
     if vim.bo.formatprg ~= "" then
@@ -168,7 +165,7 @@ vim.keymap.set("n", "<leader>f", function()
     else
         vim.lsp.buf.format()
     end
-end, opts)
+end)
 
 vim.keymap.set("n", "grq", function()
     vim.diagnostic.setqflist()
@@ -179,26 +176,26 @@ vim.keymap.set("n", "grq", function()
         return sa < sb or (sa == sb and a.lnum < b.lnum)
     end)
     vim.fn.setqflist({}, "r", { items = items })
-end, opts)
-vim.keymap.set("n", "grl", vim.diagnostic.setloclist, opts)
+end)
+vim.keymap.set("n", "grl", vim.diagnostic.setloclist)
 
 vim.keymap.set("n", "<leader>st", function()
     vim.cmd.new()
     vim.api.nvim_win_set_height(0, math.floor(vim.o.lines * 0.25))
     vim.wo.winfixheight = true
     vim.cmd.term()
-end, opts)
+end)
 
 local function git_diff(ref)
     ref = ref or "HEAD"
     vim.cmd.diffsplit { "git://" .. ref .. "/%", mods = { vertical = true, split = "leftabove" } }
     vim.cmd.wincmd "p"
 end
-vim.keymap.set("n", "<leader>gd", git_diff, opts)
+vim.keymap.set("n", "<leader>gd", git_diff)
 vim.keymap.set("n", "<leader>gD", function()
     local ref = vim.fn.input "ref> "
     git_diff(ref)
-end, opts)
+end)
 
 local function git_blame(ref)
     ref = ref or "HEAD"
@@ -208,11 +205,11 @@ local function git_blame(ref)
     local result = vim.system({ "git", "blame", ref, ("-L%d,%d"):format(row, row), "--", path }, { cwd = root }):wait()
     print(result.stdout)
 end
-vim.keymap.set("n", "<leader>gb", git_blame, opts)
+vim.keymap.set("n", "<leader>gb", git_blame)
 vim.keymap.set("n", "<leader>gB", function()
     local ref = vim.fn.input "ref> "
     git_blame(ref)
-end, opts)
+end)
 
 vim.cmd.packadd "cfilter"
 
@@ -310,10 +307,6 @@ vim.api.nvim_create_autocmd("LspProgress", {
         })
     end,
 })
-
-vim.api.nvim_create_user_command("ToggleDiagnostics", function()
-    vim.diagnostic.enable(not vim.diagnostic.is_enabled())
-end, {})
 
 vim.diagnostic.config {
     severity_sort = true,
