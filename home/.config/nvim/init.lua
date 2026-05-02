@@ -69,8 +69,6 @@ vim.o.pumblend = 5
 vim.o.wildmode = "noselect"
 vim.opt.wildoptions:append "fuzzy"
 
-vim.opt.shada:append "!"
-
 vim.g.netrw_banner = 0
 vim.g.netrw_liststyle = 0
 vim.g.netrw_cursor = 0
@@ -125,6 +123,10 @@ vim.keymap.set({ "n", "v" }, "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, si
 
 vim.keymap.set("n", "<left>", "gT", opts)
 vim.keymap.set("n", "<right>", "gt", opts)
+
+for i = 1, 5 do
+    vim.keymap.set("n", "<M-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
+end
 
 local function grep(input)
     local escaped = vim.fn.shellescape(input):gsub("%%", "\\%%"):gsub("#", "\\#")
@@ -187,9 +189,30 @@ vim.keymap.set("n", "<leader>st", function()
     vim.cmd.term()
 end, opts)
 
-for i = 1, 5 do
-    vim.keymap.set("n", "<C-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
+local function git_diff(ref)
+    ref = ref or "HEAD"
+    vim.cmd.diffsplit { "git://" .. ref .. "/%", mods = { vertical = true, split = "leftabove" } }
+    vim.cmd.wincmd "p"
 end
+vim.keymap.set("n", "<leader>gd", git_diff, opts)
+vim.keymap.set("n", "<leader>gD", function()
+    local ref = vim.fn.input "ref> "
+    git_diff(ref)
+end, opts)
+
+local function git_blame(ref)
+    ref = ref or "HEAD"
+    local root = vim.fs.root(0, ".git")
+    local path = vim.fn.expand("%:p"):sub(#root + 2)
+    local row = unpack(vim.api.nvim_win_get_cursor(0))
+    local result = vim.system({ "git", "blame", ref, ("-L%d,%d"):format(row, row), "--", path }, { cwd = root }):wait()
+    print(result.stdout)
+end
+vim.keymap.set("n", "<leader>gb", git_blame, opts)
+vim.keymap.set("n", "<leader>gB", function()
+    local ref = vim.fn.input "ref> "
+    git_blame(ref)
+end, opts)
 
 vim.cmd.packadd "cfilter"
 
@@ -226,6 +249,20 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
     once = true,
     callback = function()
         vim.g[arglist_key] = vim.fn.argv()
+    end,
+})
+
+vim.api.nvim_create_autocmd("BufReadCmd", {
+    pattern = "git://*/*",
+    callback = function(ev)
+        local ref, path = ev.match:match "git://([^/]+)/(.*)"
+        local root = vim.fs.root(0, ".git")
+        local result = vim.system({ "git", "show", ref .. ":" .. path }, { cwd = root }):wait()
+        vim.api.nvim_buf_set_lines(ev.buf, 0, -1, false, vim.split(result.stdout, "\n"))
+        vim.bo[ev.buf].modifiable = false
+        vim.bo[ev.buf].buftype = "nofile"
+        vim.bo[ev.buf].bufhidden = "wipe"
+        vim.bo[ev.buf].filetype = vim.filetype.match { filename = path } or ""
     end,
 })
 

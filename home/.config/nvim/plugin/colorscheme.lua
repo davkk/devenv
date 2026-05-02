@@ -35,10 +35,7 @@ set("FloatBorder", { link = "NormalFloat" })
 set("FloatTitle", { link = "NormalFloat" })
 
 local DiagnosticHint = get "DiagnosticHint"
-local DiagnosticWarn = get "DiagnosticWarn"
 set("DiagnosticUnnecessary", { sp = DiagnosticHint.fg, underline = true })
-set("SpellCap", { sp = DiagnosticHint.sp, undercurl = true })
-set("SpellBad", { sp = DiagnosticWarn.sp, undercurl = true })
 
 set("WinSeparator", { link = "LineNr" })
 set("NonText", { link = "LineNr" })
