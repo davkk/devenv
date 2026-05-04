@@ -33,6 +33,7 @@ local Pmenu = get "Pmenu"
 set("NormalFloat", { bg = Pmenu.bg, blend = 5 })
 set("FloatBorder", { link = "NormalFloat" })
 set("FloatTitle", { link = "NormalFloat" })
+ext("QuickFixLine", { bg = Pmenu.bg })
 
 local DiagnosticHint = get "DiagnosticHint"
 set("DiagnosticUnnecessary", { sp = DiagnosticHint.fg, underline = true })

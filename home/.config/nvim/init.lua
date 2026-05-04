@@ -85,26 +85,21 @@ vim.keymap.set("n", "<C-f>", ":sil! fin! ", { desc = "find files" })
 vim.keymap.set("n", "<C-b>", ":sil! b! ", { desc = "pick buffer" })
 vim.keymap.set("n", "<C-g>", ":sil! gr! ", { desc = "grep" })
 
-function Format()
+function Format(s, e)
     local formatprg = vim.bo.formatprg
-    if not formatprg or formatprg == "" then
-        return 0
+    if formatprg == "" then
+        return 1
     end
-    local start_lnum = vim.v.lnum
-    local end_lnum = start_lnum + vim.v.count - 1
-    local lines = vim.api.nvim_buf_get_lines(0, start_lnum - 1, end_lnum, true)
-    local cmd = vim.split(vim.fn.expandcmd(formatprg), " ")
-    local cwd = vim.fs.dirname(vim.api.nvim_buf_get_name(0))
-    local output = vim.system(cmd, { stdin = lines, cwd = cwd }):wait()
-    if output.code ~= 0 then
-        vim.schedule(function()
-            vim.notify(output.stderr, vim.log.levels.ERROR)
-        end)
-        return 0
+    s = s or vim.v.lnum
+    e = e or (vim.v.lnum + vim.v.count - 1)
+    local out = vim.system(
+        vim.split(vim.fn.expandcmd(formatprg), " "),
+        { stdin = vim.api.nvim_buf_get_lines(0, s - 1, e, true), cwd = vim.fs.dirname(vim.api.nvim_buf_get_name(0)) }
+    ):wait()
+    if out.code == 0 then
+        vim.api.nvim_buf_set_lines(0, s - 1, e, true, vim.split(out.stdout, "\n", { trimempty = true }))
     end
-    local formatted = vim.split(output.stdout, "\n", { trimempty = true })
-    vim.api.nvim_buf_set_lines(0, start_lnum - 1, end_lnum, true, formatted)
-    return 0
+    return out.code
 end
 vim.o.formatexpr = "v:lua.Format()"
 
@@ -122,22 +117,6 @@ for i = 1, 5 do
     vim.keymap.set("n", "<M-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
 end
 
-local function grep(input)
-    local escaped = vim.fn.shellescape(input):gsub("%%", "\\%%"):gsub("#", "\\#")
-    vim.cmd.grep({ "-U --fixed-strings -- " .. escaped, bang = true, mods = { silent = true } })
-end
-
-vim.keymap.set("n", "<leader>gw", function()
-    grep(vim.fn.expand "<cword>")
-end)
-
-vim.keymap.set("x", "<leader>gw", function()
-    local mode = vim.fn.mode()
-    local lines = vim.fn.getregion(vim.fn.getpos "v", vim.fn.getpos ".", { type = mode })
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "nx", false)
-    grep(vim.trim(table.concat(lines, "\n")))
-end)
-
 vim.keymap.set("n", "<C-e>", function()
     if vim.bo.filetype == "netrw" then
         vim.cmd.Rexplore()
@@ -145,22 +124,11 @@ vim.keymap.set("n", "<C-e>", function()
     end
     local filename = vim.fn.expand "%:p:t"
     vim.cmd.Explore()
-    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-    for idx, file in ipairs(lines) do
+    for idx, file in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
         if file == filename then
             vim.api.nvim_win_set_cursor(0, { idx, 0 })
             break
         end
-    end
-end)
-
-vim.keymap.set("n", "<leader>f", function()
-    if vim.bo.formatprg ~= "" then
-        local view = vim.fn.winsaveview()
-        vim.cmd.normal { "gggqG", bang = true, mods = { silent = true, keepjumps = true } }
-        vim.fn.winrestview(view)
-    else
-        vim.lsp.buf.format()
     end
 end)
 
@@ -175,6 +143,26 @@ vim.keymap.set("n", "grq", function()
     vim.fn.setqflist({}, "r", { items = items })
 end)
 vim.keymap.set("n", "grl", vim.diagnostic.setloclist)
+
+local function grep(input)
+    local escaped = vim.fn.shellescape(input):gsub("%%", "\\%%"):gsub("#", "\\#")
+    vim.cmd.grep { "-U --fixed-strings -- " .. escaped, bang = true, mods = { silent = true } }
+end
+
+vim.keymap.set("n", "<leader>gw", function()
+    grep(vim.fn.expand "<cword>")
+end)
+
+vim.keymap.set("x", "<leader>gw", function()
+    local mode = vim.fn.mode()
+    local lines = vim.fn.getregion(vim.fn.getpos "v", vim.fn.getpos ".", { type = mode })
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "nx", false)
+    grep(vim.trim(table.concat(lines, "\n")))
+end)
+
+vim.keymap.set("n", "<leader>f", function()
+    return vim.bo.formatprg ~= "" and Format(1, -1) or vim.lsp.buf.format()
+end)
 
 vim.keymap.set("n", "<leader>st", function()
     vim.cmd.new()
@@ -252,7 +240,7 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
         local ref, path = ev.match:match "git://([^/]+)/(.*)"
         local root = vim.fs.root(0, ".git")
         local result = vim.system({ "git", "show", ref .. ":" .. path }, { cwd = root }):wait()
-        vim.api.nvim_buf_set_lines(ev.buf, 0, -1, false, vim.split(result.stdout, "\n"))
+        vim.api.nvim_buf_set_lines(ev.buf, 0, -1, false, vim.split(result.stdout, "\n", { trimempty = true }))
         vim.bo[ev.buf].modifiable = false
         vim.bo[ev.buf].buftype = "nofile"
         vim.bo[ev.buf].bufhidden = "wipe"
@@ -277,12 +265,10 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 vim.api.nvim_create_autocmd("TermOpen", {
     group = vim.api.nvim_create_augroup("user.terminal", { clear = true }),
     callback = function()
-        vim.opt_local.relativenumber = false
-        vim.opt_local.number = false
-        vim.opt_local.signcolumn = "no"
         vim.opt_local.scrolloff = 0
         vim.opt_local.sidescrolloff = 0
-        vim.opt_local.whichwrap:append "hl"
+        vim.opt_local.whichwrap:append "h"
+        vim.opt_local.whichwrap:append "l"
     end,
 })
 
