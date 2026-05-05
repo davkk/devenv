@@ -10,7 +10,6 @@ vim.o.number = true
 vim.o.laststatus = 3
 
 vim.o.signcolumn = "yes"
-vim.o.winborder = "solid"
 
 vim.o.scrolloff = 8
 vim.o.sidescrolloff = 8
@@ -300,6 +299,26 @@ vim.diagnostic.config {
         prefix = "",
     },
 }
+
+vim.api.nvim_set_hl(0, "Normal", { bg = "#000000", update = true })
+vim.api.nvim_set_hl(0, "Pmenu", { blend = 5, update = true })
+vim.api.nvim_set_hl(0, "QuickFixLine", { link = "Pmenu" })
+vim.api.nvim_set_hl(0, "NormalFloat", { link = "Pmenu" })
+vim.api.nvim_set_hl(0, "EndOfBuffer", { link = "LineNr" })
+vim.api.nvim_set_hl(0, "SignColumn", { link = "LineNr" })
+vim.api.nvim_set_hl(0, "WinSeparator", { link = "LineNr" })
+vim.api.nvim_set_hl(0, "NonText", { link = "LineNr" })
+vim.api.nvim_set_hl(0, "StatusLine", { link = "Comment" })
+vim.api.nvim_set_hl(0, "StatusLineNC", { link = "StatusLine" })
+vim.api.nvim_set_hl(0, "StatusLineTerm", { link = "StatusLine" })
+vim.api.nvim_set_hl(0, "StatusLineTermNC", { link = "StatusLine" })
+vim.api.nvim_set_hl(0, "TabLine", { link = "StatusLine" })
+vim.api.nvim_set_hl(0, "TabLineFill", { link = "StatusLine" })
+vim.api.nvim_set_hl(0, "TabLineSel", { bold = true, update = true })
+vim.api.nvim_set_hl(0, "DiffAdd", { fg = "none", update = true })
+vim.api.nvim_set_hl(0, "DiffChange", { fg = "none", update = true })
+vim.api.nvim_set_hl(0, "DiffDelete", { fg = "none", update = true })
+vim.api.nvim_set_hl(0, "DiffText", { fg = "none", update = true })
 
 require("vim._core.ui2").enable {
     enable = true,
