@@ -57,7 +57,8 @@ export FZF_DEFAULT_OPTS="
 --color=border:#222222,header:#888888,gutter:#111111
 --color=spinner:#ffffff,info:#888888
 --color=pointer:#ffffff,marker:#ffffff,prompt:#ffffff
---bind ctrl-y:accept
+--bind=ctrl-y:accept
+--layout=reverse
 "
 
 export _JAVA_AWT_WM_NONREPARENTING=1

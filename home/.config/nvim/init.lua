@@ -61,6 +61,7 @@ vim.opt.completeopt:append { "menuone", "noinsert", "fuzzy" }
 
 vim.o.pumheight = 10
 vim.o.pumblend = 5
+vim.o.winblend = 5
 
 vim.o.wildmode = "noselect"
 vim.opt.wildoptions:append "fuzzy"
@@ -117,18 +118,7 @@ for i = 1, 5 do
 end
 
 vim.keymap.set("n", "<C-e>", function()
-    if vim.bo.filetype == "netrw" then
-        vim.cmd.Rexplore()
-        return
-    end
-    local filename = vim.fn.expand "%:p:t"
-    vim.cmd.Explore()
-    for idx, file in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
-        if file == filename then
-            vim.api.nvim_win_set_cursor(0, { idx, 0 })
-            break
-        end
-    end
+    return vim.bo.filetype == "netrw" and vim.cmd.Rexplore() or vim.cmd.Explore()
 end)
 
 vim.keymap.set("n", "grq", function()
@@ -147,11 +137,9 @@ local function grep(input)
     local escaped = vim.fn.shellescape(input):gsub("%%", "\\%%"):gsub("#", "\\#")
     vim.cmd.grep { "-U --fixed-strings -- " .. escaped, bang = true, mods = { silent = true } }
 end
-
 vim.keymap.set("n", "<leader>gw", function()
     grep(vim.fn.expand "<cword>")
 end)
-
 vim.keymap.set("x", "<leader>gw", function()
     local mode = vim.fn.mode()
     local lines = vim.fn.getregion(vim.fn.getpos "v", vim.fn.getpos ".", { type = mode })
@@ -195,8 +183,6 @@ vim.keymap.set("n", "<leader>gB", function()
     git_blame(ref)
 end)
 
-vim.cmd.packadd "cfilter"
-
 vim.keymap.set("n", "<leader>u", function()
     vim.cmd.packadd "nvim.undotree"
     vim.cmd.Undotree()
@@ -213,7 +199,6 @@ vim.api.nvim_create_user_command("TrimWhitespace", function()
 end, {})
 
 local arglist_key = "ARGLIST_" .. vim.fn.getcwd():gsub("%W", "_"):upper()
-
 vim.api.nvim_create_autocmd("VimEnter", {
     once = true,
     callback = function()
@@ -225,7 +210,6 @@ vim.api.nvim_create_autocmd("VimEnter", {
         pcall(vim.cmd.argadd, { table.concat(vim.tbl_map(vim.fn.fnameescape, l), " ") })
     end,
 })
-
 vim.api.nvim_create_autocmd("VimLeavePre", {
     once = true,
     callback = function()
@@ -234,16 +218,18 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 })
 
 vim.api.nvim_create_autocmd("BufReadCmd", {
+    group = vim.api.nvim_create_augroup("user.git", { clear = true }),
     pattern = "git://*/*",
     callback = function(ev)
         local ref, path = ev.match:match "git://([^/]+)/(.*)"
-        local root = vim.fs.root(0, ".git")
-        local result = vim.system({ "git", "show", ref .. ":" .. path }, { cwd = root }):wait()
+        local root = vim.fs.root(path, ".git") or ""
+        local relpath = vim.fs.relpath(root, path) or path
+        local result = vim.system({ "git", "show", ref .. ":" .. relpath }, { cwd = root }):wait()
         vim.api.nvim_buf_set_lines(ev.buf, 0, -1, false, vim.split(result.stdout, "\n", { trimempty = true }))
         vim.bo[ev.buf].modifiable = false
         vim.bo[ev.buf].buftype = "nofile"
         vim.bo[ev.buf].bufhidden = "wipe"
-        vim.bo[ev.buf].filetype = vim.filetype.match { filename = path } or ""
+        vim.bo[ev.buf].filetype = vim.filetype.match { filename = relpath } or ""
     end,
 })
 
@@ -271,39 +257,9 @@ vim.api.nvim_create_autocmd("TermOpen", {
     end,
 })
 
-vim.api.nvim_create_autocmd("LspProgress", {
-    callback = function(ev)
-        local value = ev.data.params.value or {}
-        local msg = value.message or "done"
-        if #msg > 40 then
-            msg = msg:sub(1, 37) .. "..."
-        end
-        vim.api.nvim_echo({ { msg } }, false, {
-            id = "lsp",
-            source = "lsp",
-            kind = "progress",
-            title = value.title,
-            status = value.kind ~= "end" and "running" or "success",
-            percent = value.percentage,
-        })
-    end,
-})
-
-vim.diagnostic.config {
-    severity_sort = true,
-    virtual_text = true,
-    float = {
-        source = true,
-        show_header = true,
-        header = "",
-        prefix = "",
-    },
-}
-
 vim.api.nvim_set_hl(0, "Normal", { bg = "#000000", update = true })
-vim.api.nvim_set_hl(0, "Pmenu", { blend = 5, update = true })
-vim.api.nvim_set_hl(0, "QuickFixLine", { link = "Pmenu" })
 vim.api.nvim_set_hl(0, "NormalFloat", { link = "Pmenu" })
+vim.api.nvim_set_hl(0, "QuickFixLine", { link = "Pmenu" })
 vim.api.nvim_set_hl(0, "EndOfBuffer", { link = "LineNr" })
 vim.api.nvim_set_hl(0, "SignColumn", { link = "LineNr" })
 vim.api.nvim_set_hl(0, "WinSeparator", { link = "LineNr" })
