@@ -4,12 +4,7 @@ vim.g.maplocalleader = " "
 vim.o.termguicolors = true
 vim.o.exrc = true
 
-vim.o.relativenumber = true
-vim.o.number = true
-
-vim.o.laststatus = 3
-
-vim.o.signcolumn = "yes"
+vim.o.signcolumn = "no"
 
 vim.o.scrolloff = 8
 vim.o.sidescrolloff = 8
@@ -44,16 +39,13 @@ vim.o.list = true
 vim.opt.listchars = {
     tab = "» ",
     trail = "·",
+    nbsp = "␣",
     extends = "→",
     precedes = "←",
-    conceal = "┊",
-    nbsp = "␣",
 }
-
-vim.opt.diffopt:append { "linematch:60", "algorithm:histogram" }
+vim.o.fillchars = "stl:─,stlnc:─"
 
 vim.opt.guicursor:append "t:ver100-blinkon0-TermCursor"
-
 vim.o.nrformats = "unsigned"
 
 vim.opt.complete:append "o"
@@ -110,9 +102,6 @@ end
 vim.keymap.set({ "n", "v" }, "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set({ "n", "v" }, "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
-vim.keymap.set("n", "<left>", "gT")
-vim.keymap.set("n", "<right>", "gt")
-
 for i = 1, 5 do
     vim.keymap.set("n", "<M-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
 end
@@ -160,7 +149,13 @@ end)
 
 local function git_diff(ref)
     ref = ref or "HEAD"
-    vim.cmd.diffsplit { "git://" .. ref .. "/%", mods = { vertical = true, split = "leftabove" } }
+    local root = vim.fs.root(0, ".git")
+    if not root then
+        return
+    end
+    local path = vim.fn.expand("%:p"):sub(#root + 2)
+    local relpath = vim.fs.relpath(root, path) or path
+    vim.cmd.diffsplit { "git://" .. ref .. "/" .. relpath, mods = { vertical = true, split = "leftabove" } }
     vim.cmd.wincmd "p"
 end
 vim.keymap.set("n", "<leader>gd", git_diff)
@@ -172,6 +167,9 @@ end)
 local function git_blame(ref)
     ref = ref or "HEAD"
     local root = vim.fs.root(0, ".git")
+    if not root then
+        return
+    end
     local path = vim.fn.expand("%:p"):sub(#root + 2)
     local row = unpack(vim.api.nvim_win_get_cursor(0))
     local result = vim.system({ "git", "blame", ref, ("-L%d,%d"):format(row, row), "--", path }, { cwd = root }):wait()
@@ -222,14 +220,12 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
     pattern = "git://*/*",
     callback = function(ev)
         local ref, path = ev.match:match "git://([^/]+)/(.*)"
-        local root = vim.fs.root(path, ".git") or ""
-        local relpath = vim.fs.relpath(root, path) or path
-        local result = vim.system({ "git", "show", ref .. ":" .. relpath }, { cwd = root }):wait()
+        local result = vim.system({ "git", "show", ref .. ":" .. path }):wait()
         vim.api.nvim_buf_set_lines(ev.buf, 0, -1, false, vim.split(result.stdout, "\n", { trimempty = true }))
         vim.bo[ev.buf].modifiable = false
         vim.bo[ev.buf].buftype = "nofile"
         vim.bo[ev.buf].bufhidden = "wipe"
-        vim.bo[ev.buf].filetype = vim.filetype.match { filename = relpath } or ""
+        vim.bo[ev.buf].filetype = vim.filetype.match { filename = path } or ""
     end,
 })
 
@@ -257,23 +253,18 @@ vim.api.nvim_create_autocmd("TermOpen", {
     end,
 })
 
-vim.api.nvim_set_hl(0, "Normal", { bg = "#000000", update = true })
+vim.api.nvim_set_hl(0, "Normal", { bg = "none", update = true })
 vim.api.nvim_set_hl(0, "NormalFloat", { link = "Pmenu" })
 vim.api.nvim_set_hl(0, "QuickFixLine", { link = "Pmenu" })
-vim.api.nvim_set_hl(0, "EndOfBuffer", { link = "LineNr" })
-vim.api.nvim_set_hl(0, "SignColumn", { link = "LineNr" })
+vim.api.nvim_set_hl(0, "LineNr", { bold = true, update = true })
 vim.api.nvim_set_hl(0, "WinSeparator", { link = "LineNr" })
-vim.api.nvim_set_hl(0, "NonText", { link = "LineNr" })
-vim.api.nvim_set_hl(0, "StatusLine", { link = "Comment" })
+vim.api.nvim_set_hl(0, "StatusLine", { link = "LineNr" })
 vim.api.nvim_set_hl(0, "StatusLineNC", { link = "StatusLine" })
-vim.api.nvim_set_hl(0, "StatusLineTerm", { link = "StatusLine" })
 vim.api.nvim_set_hl(0, "StatusLineTermNC", { link = "StatusLine" })
 vim.api.nvim_set_hl(0, "TabLine", { link = "StatusLine" })
 vim.api.nvim_set_hl(0, "TabLineFill", { link = "StatusLine" })
-vim.api.nvim_set_hl(0, "TabLineSel", { bold = true, update = true })
 vim.api.nvim_set_hl(0, "DiffAdd", { fg = "none", update = true })
 vim.api.nvim_set_hl(0, "DiffChange", { fg = "none", update = true })
-vim.api.nvim_set_hl(0, "DiffDelete", { fg = "none", update = true })
 vim.api.nvim_set_hl(0, "DiffText", { fg = "none", update = true })
 
 require("vim._core.ui2").enable {
