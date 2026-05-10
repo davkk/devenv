@@ -258,7 +258,6 @@ bar {
 ##
 
 set $cursor_size 28
-
 exec_always gsettings set org.gnome.desktop.interface color-scheme prefer-dark
 exec_always gsettings set org.gtk.Settings.FileChooser window-size '(1000, 500)'
 exec_always gsettings set org.gnome.desktop.interface cursor-size $cursor_size
@@ -292,6 +291,8 @@ for_window [window_type="menu"] floating enable
 ##
 # startup
 ##
+
+exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
 
 exec /usr/libexec/xdg-desktop-portal -r &
 exec /usr/bin/lxpolkit &
