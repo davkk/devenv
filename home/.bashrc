@@ -77,8 +77,8 @@ cmd_start=0
 cmd_duration=0
 
 _prompt_preexec() {
-    [[ "${COMP_LINE:-}" != "" ]]             && return  # skip during tab completion
-    [[ "$BASH_COMMAND" == "_prompt_precmd" ]] && return  # skip PROMPT_COMMAND itself
+    [[ "${COMP_LINE:-}" != "" ]] && return
+    [[ ";${PROMPT_COMMAND};" == *";${BASH_COMMAND};"* ]] && return
     cmd_start=$SECONDS
 }
 trap "_prompt_preexec" DEBUG
