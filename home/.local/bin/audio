@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+pactl --format=json list short sinks \
+    | jq -r '.[] | "\(.index) \(.name)"' \
+    | fzf \
+    | awk '{print $1}' \
+    | xargs pactl set-default-sink
