@@ -6,17 +6,15 @@ case "$OS" in
     fedora)
         sudo dnf install -y \
             gcc-c++ ninja-build \
-            sway i3status grimshot grim slurp jq wl-clipboard \
             git curl wget moreutils make cmake \
-            desktop-file-utils parallel tmux \
+            desktop-file-utils parallel tmux jq \
             stow
         ;;
     ubuntu)
         sudo apt-get install -y \
             gcc-c++ ninja-build \
-            sway i3status grimshot grim slurp jq wl-clipboard \
             git curl wget moreutils make cmake \
-            desktop-file-utils parallel tmux \
+            desktop-file-utils parallel tmux jq \
             stow
         ;;
 esac

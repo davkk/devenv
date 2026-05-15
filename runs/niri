@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+case "$OS" in
+    fedora) sudo dnf install -y \
+        niri mako swaybg waybar fuzzel swayidle \
+        wl-clipboard mate-polkit \
+        gnome-keyring xdg-desktop-portal-gtk xdg-desktop-portal-gnome
+    ;;
+    ubuntu) sudo apt-get install -y \
+        niri mako swaybg waybar fuzzel swayidle \
+        wl-clipboard mate-polkit \
+        gnome-keyring xdg-desktop-portal-gtk xdg-desktop-portal-gnome
+    ;;
+esac
+
+systemctl --user daemon-reload
+
+systemctl --user add-wants niri.service swaybg.service
+systemctl --user add-wants niri.service swayidle.service
+systemctl --user add-wants niri.service polkit.service
+systemctl --user add-wants niri.service waybar.service
+
+systemctl --user enable --now polkit.service
+systemctl --user enable --now swayidle.service
+systemctl --user enable --now waybar.service
+systemctl --user enable --now swaybg.service

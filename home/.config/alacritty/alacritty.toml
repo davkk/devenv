@@ -8,7 +8,7 @@ history = 100000
 multiplier = 5
 
 [font]
-size = 14
+size = 18
 
 [colors.primary]
 background = "#000000"

@@ -1,0 +1,17 @@
+window#waybar {
+    background-color: #000000;
+    color: #888888;
+    font-size: 18px;
+}
+
+#workspaces button.active,
+#workspaces button.focused {
+    color: #ffffff;
+}
+#workspaces button {
+    color: inherit;
+}
+
+#backlight, #wireplumber, #battery, #power-profiles-daemon, #clock {
+    padding: 0 15px;
+}

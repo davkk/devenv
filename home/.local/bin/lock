@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+tmpfile=/tmp/swaylock-bg.jpg
+ffmpeg -y -i ~/Pictures/wallpaper.jpg -vf "gblur=sigma=30" "$tmpfile"
+swaylock -f -s fill -i "$tmpfile"

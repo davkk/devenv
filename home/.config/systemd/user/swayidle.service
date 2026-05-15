@@ -1,0 +1,14 @@
+[Unit]
+Description=Idle manager for Wayland (Niri)
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/swayidle -w \
+    timeout 120 'niri msg action power-off-monitors' \
+    resume 'niri msg action power-on-monitors'
+
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

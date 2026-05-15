@@ -1,0 +1,22 @@
+font=monospace 18px
+
+anchor=bottom-right
+width=350
+height=150
+outer-margin=10
+margin=0
+padding=10
+border-size=4
+
+background-color=#000000dd
+text-color=#888888
+border-color=#222222
+
+default-timeout=6000
+ignore-timeout=0
+
+group-by=app-name
+
+[urgency=high]
+border-color=#900000
+default-timeout=0

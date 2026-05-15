@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-case "$OS" in
-    fedora) sudo dnf install -y light ;;
-    ubuntu) sudo apt-get install -y light ;;
-esac

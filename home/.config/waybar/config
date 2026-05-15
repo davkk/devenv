@@ -1,0 +1,52 @@
+{
+    "layer": "top",
+    "position": "bottom",
+    "modules-left": [
+        "niri/workspaces"
+    ],
+    "modules-center": [
+        "clock"
+    ],
+    "modules-right": [
+        "backlight",
+        "wireplumber",
+        "battery",
+        "power-profiles-daemon",
+    ],
+    "wireplumber": {
+        "format": "󰕾 {volume}%",
+        "format-muted": "<span color='#ffff00'>󰝟 muted</span>",
+        "on-click": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+    },
+    "battery": {
+        "interval": 5,
+        "states": {
+            "warning": 40,
+            "critical": 20
+        },
+        "design-capacity": true,
+        "format": "󰁿 {capacity}%",
+        "format-charging": "󰂅 {capacity}%",
+        "format-full": "󰁹 {capacity}%",
+        "format-warning": "<span color='yellow'>󰁿 {capacity}%</span>",
+        "format-critical": "<span color='red'>󰁿 {capacity}%</span>"
+    },
+    "power-profiles-daemon": {
+        "format": "{icon}",
+        "tooltip-format": "{profile}",
+        "format-icons": {
+            "performance": "",
+            "balanced": "",
+            "power-saver": ""
+        }
+    },
+    "clock": {
+        "tooltip": false,
+        "format": "{:%d.%m.%Y %H:%M:%S}",
+        "interval": 5
+    },
+    "backlight": {
+        "tooltip": false,
+        "format": "󰃞 {percent}%"
+    }
+}
