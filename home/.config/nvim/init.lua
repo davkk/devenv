@@ -147,15 +147,15 @@ vim.keymap.set("n", "<leader>st", function()
     vim.cmd.term()
 end)
 
-local function git_diff(ref)
-    ref = ref or "HEAD"
-    local root = vim.fs.root(0, ".git")
-    if not root then
-        return
-    end
-    local path = vim.fn.expand("%:p"):sub(#root + 2)
-    local relpath = vim.fs.relpath(root, path) or path
-    vim.cmd.diffsplit { "git://" .. ref .. "/" .. relpath, mods = { vertical = true, split = "leftabove" } }
+local function git_diff(rev)
+    rev = rev or "HEAD"
+    local file = vim.api.nvim_buf_get_name(0)
+    local root = assert(vim.fs.root(file, ".git"), "not in a git repo")
+    local path = vim.fs.relpath(root, file)
+    vim.cmd.diffsplit {
+        ("git://%s//%s:%s"):format(root, rev, path),
+        mods = { vertical = true, split = "leftabove" },
+    }
     vim.cmd.wincmd "p"
 end
 vim.keymap.set("n", "<leader>gd", git_diff)
@@ -166,11 +166,9 @@ end)
 
 local function git_blame(ref)
     ref = ref or "HEAD"
-    local root = vim.fs.root(0, ".git")
-    if not root then
-        return
-    end
-    local path = vim.fn.expand("%:p"):sub(#root + 2)
+    local file = vim.api.nvim_buf_get_name(0)
+    local root = assert(vim.fs.root(0, ".git"), "not in a git repo")
+    local path = vim.fs.relpath(root, file)
     local row = unpack(vim.api.nvim_win_get_cursor(0))
     local result = vim.system({ "git", "blame", ref, ("-L%d,%d"):format(row, row), "--", path }, { cwd = root }):wait()
     print(result.stdout)
@@ -216,16 +214,16 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 })
 
 vim.api.nvim_create_autocmd("BufReadCmd", {
-    group = vim.api.nvim_create_augroup("user.git", { clear = true }),
-    pattern = "git://*/*",
+    group = vim.api.nvim_create_augroup("user.git", {}),
+    pattern = "git://*//*",
     callback = function(ev)
-        local ref, path = ev.match:match "git://([^/]+)/(.*)"
-        local result = vim.system({ "git", "show", ref .. ":" .. path }):wait()
-        vim.api.nvim_buf_set_lines(ev.buf, 0, -1, false, vim.split(result.stdout, "\n", { trimempty = true }))
+        local root, obj = ev.match:match "^git://(.+)//(.+)$"
+        local out = vim.system({ "git", "show", obj }, { cwd = root, text = true }):wait()
+        vim.api.nvim_buf_set_lines(ev.buf, 0, -1, false, vim.split(out.stdout, "\n", { trimempty = true }))
         vim.bo[ev.buf].modifiable = false
         vim.bo[ev.buf].buftype = "nofile"
         vim.bo[ev.buf].bufhidden = "wipe"
-        vim.bo[ev.buf].filetype = vim.filetype.match { filename = path } or ""
+        vim.bo[ev.buf].filetype = vim.filetype.match { filename = obj:match ":(.+)$" } or ""
     end,
 })
 
@@ -257,7 +255,7 @@ vim.api.nvim_set_hl(0, "Normal", { bg = "none", update = true })
 vim.api.nvim_set_hl(0, "NormalFloat", { link = "Pmenu" })
 vim.api.nvim_set_hl(0, "QuickFixLine", { link = "Pmenu" })
 vim.api.nvim_set_hl(0, "LineNr", { bold = true, update = true })
-vim.api.nvim_set_hl(0, "WinSeparator", { link = "LineNr" })
+vim.api.nvim_set_hl(0, "WinSeparator", { link = "Comment" })
 vim.api.nvim_set_hl(0, "StatusLine", { link = "LineNr" })
 vim.api.nvim_set_hl(0, "StatusLineNC", { link = "StatusLine" })
 vim.api.nvim_set_hl(0, "StatusLineTermNC", { link = "StatusLine" })
