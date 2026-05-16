@@ -201,25 +201,6 @@ vim.api.nvim_create_user_command("TrimWhitespace", function()
     vim.cmd [[%s/\s\+$//e]]
 end, {})
 
-local arglist_key = "ARGLIST_" .. vim.fn.getcwd():gsub("%W", "_"):upper()
-vim.api.nvim_create_autocmd("VimEnter", {
-    once = true,
-    callback = function()
-        local l = vim.tbl_filter(function(f)
-            return f:match "%S"
-        end, vim.g[arglist_key] or {})
-        vim.g[arglist_key] = l
-        vim.cmd.argdelete { "*", mods = { silent = true, emsg_silent = true } }
-        pcall(vim.cmd.argadd, { table.concat(vim.tbl_map(vim.fn.fnameescape, l), " ") })
-    end,
-})
-vim.api.nvim_create_autocmd("VimLeavePre", {
-    once = true,
-    callback = function()
-        vim.g[arglist_key] = vim.fn.argv()
-    end,
-})
-
 vim.api.nvim_create_autocmd("BufReadCmd", {
     group = vim.api.nvim_create_augroup("user.git", {}),
     pattern = "git://*//*",
@@ -273,46 +254,9 @@ vim.api.nvim_set_hl(0, "DiffChange", { fg = "none", update = true })
 vim.api.nvim_set_hl(0, "DiffText", { fg = "none", update = true })
 
 require("vim._core.ui2").enable {
-    enable = true,
     msg = {
-        target = "msg",
         targets = {
-            typed_cmd = "cmd",
-            search_cmd = "cmd",
-            search_count = "cmd",
-            completion = "cmd",
-            wildlist = "cmd",
-            confirm = "cmd",
-            [""] = "msg",
-            empty = "msg",
-            echo = "msg",
-            echomsg = "msg",
-            bufwrite = "msg",
-            undo = "msg",
-            wmsg = "msg",
-            shell_ret = "msg",
-            emsg = "pager",
-            echoerr = "pager",
-            lua_error = "pager",
-            verbose = "pager",
-            progress = "pager",
-            shell_cmd = "pager",
-            shell_out = "pager",
-            shell_err = "pager",
-            list_cmd = "pager",
-            quickfix = "pager",
-            rpc_error = "pager",
-            lua_print = "pager",
-        },
-        cmd = {
-            height = 0.3,
-        },
-        msg = {
-            height = 0.3,
-            timeout = 2000,
-        },
-        pager = {
-            height = 0.5,
+            progress = "msg",
         },
     },
 }
