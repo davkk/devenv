@@ -48,6 +48,13 @@ vim.o.fillchars = "stl:─,stlnc:─"
 vim.opt.guicursor:append "t:ver100-blinkon0-TermCursor"
 vim.o.nrformats = "unsigned"
 
+vim.opt.diffopt:append {
+    "algorithm:histogram",
+    "linematch:60",
+    "hiddenoff",
+    "iwhite",
+}
+
 vim.opt.complete:append "o"
 vim.opt.completeopt:append { "menuone", "noinsert", "fuzzy" }
 
@@ -171,7 +178,7 @@ local function git_blame(ref)
     local path = vim.fs.relpath(root, file)
     local row = unpack(vim.api.nvim_win_get_cursor(0))
     local result = vim.system({ "git", "blame", ref, ("-L%d,%d"):format(row, row), "--", path }, { cwd = root }):wait()
-    print(result.stdout)
+    vim.api.nvim_echo({ { result.stdout } }, false, { id = "git_blame" })
 end
 vim.keymap.set("n", "<leader>gb", git_blame)
 vim.keymap.set("n", "<leader>gB", function()
