@@ -1,9 +1,9 @@
 font=monospace 18px
 
-anchor=bottom-right
+anchor=top-right
 width=350
 height=150
-outer-margin=10
+outer-margin=10,0
 margin=0
 padding=10
 border-size=4
