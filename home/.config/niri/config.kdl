@@ -4,7 +4,10 @@ screenshot-path "~/Pictures/Screenshots/screenshot-%Y-%m-%d-%H-%M-%S.png"
 
 prefer-no-csd
 
-animations { off; }
+animations { 
+    // off
+    slowdown 0.3
+}
 
 input {
     keyboard {
@@ -13,7 +16,7 @@ input {
             options "caps:escape,grp:rctrl_rshift_toggle"
         }
         repeat-delay 400
-        repeat-rate 40
+        repeat-rate 50
         numlock
     }
     touchpad {
@@ -34,8 +37,12 @@ output "eDP-1" {
 output "HDMI-A-1" { }
 
 switch-events {
-    lid-close { spawn "niri" "msg" "output" "eDP-1" "off"; }
-    lid-open  { spawn "niri" "msg" "output" "eDP-1" "on"; }
+    lid-close {
+        spawn "sh" "-c" r#"[ -f /tmp/lid_lock ] || { niri msg output "eDP-1" off; }"#
+    }
+    lid-open {
+        spawn "sh" "-c" r#"[ -f /tmp/lid_lock ] && { rm /tmp/lid_lock; exit 0; }; niri msg output "eDP-1" on"#
+    }
 }
 
 layout {
