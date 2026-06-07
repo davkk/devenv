@@ -80,9 +80,11 @@ FindFunc = function(cmdarg)
 end
 vim.o.findfunc = "v:lua.FindFunc"
 
-vim.keymap.set("n", "<C-f>", ":sil! fin! ", { desc = "find files" })
-vim.keymap.set("n", "<C-b>", ":sil! b! ", { desc = "pick buffer" })
-vim.keymap.set("n", "<C-g>", ":sil! gr! ", { desc = "grep" })
+-- `!` forces the switch if current buffer has unsaved changes
+vim.keymap.set("n", "<C-f>", ":fin! ", { desc = "find files" })
+vim.keymap.set("n", "<C-b>", ":b! ", { desc = "pick buffer" })
+-- `sil` hides command output; `!` stops auto-jump
+vim.keymap.set("n", "<C-g>", ":sil gr! ", { desc = "grep" })
 
 function Format(s, e)
     local formatprg = vim.bo.formatprg
@@ -248,14 +250,8 @@ vim.api.nvim_set_hl(0, "StatusLineNC", { link = "StatusLine" })
 vim.api.nvim_set_hl(0, "StatusLineTermNC", { link = "StatusLine" })
 vim.api.nvim_set_hl(0, "TabLine", { link = "StatusLine" })
 vim.api.nvim_set_hl(0, "TabLineFill", { link = "StatusLine" })
-vim.api.nvim_set_hl(0, "DiffAdd", { fg = "none", update = true })
+vim.api.nvim_set_hl(0, "DiffAdd", { bg = "none", fg = "none", update = true })
 vim.api.nvim_set_hl(0, "DiffChange", { fg = "none", update = true })
 vim.api.nvim_set_hl(0, "DiffText", { fg = "none", update = true })
 
-require("vim._core.ui2").enable {
-    msg = {
-        targets = {
-            progress = "msg",
-        },
-    },
-}
+require("vim._core.ui2").enable { msg = { targets = { progress = "msg" } } }
