@@ -15,12 +15,18 @@ chmod 700 "$SSH_DIR"
 # eval "$(ssh-agent -s)"
 # ssh-add ~/.ssh/id_ed25519
 
-if [[ ! -f "$SSH_DIR/config" ]] || ! grep -q "Host github.com" "$SSH_DIR/config"; then
-    cat >> "$SSH_DIR/config" << 'EOF'
+if command -v op 2>/dev/null; then
+    op read "op://Personal/Github/private key" > ~/.ssh/github
+    op read "op://Personal/Github/public key" > ~/.ssh/github.pub
+    chmod 600 ~/.ssh/github*
 
-Host github.com
-    HostName github.com
-    PreferredAuthentications publickey
-    IdentityFile ~/.ssh/github
-EOF
+    if [[ ! -f "$SSH_DIR/config" ]] || ! grep -q "Host github.com" "$SSH_DIR/config"; then
+        cat >> "$SSH_DIR/config" << 'EOF'
+
+    Host github.com
+        HostName github.com
+        PreferredAuthentications publickey
+        IdentityFile ~/.ssh/github
+    EOF
+    fi
 fi

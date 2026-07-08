@@ -13,12 +13,7 @@ for f in "${FILES[@]}"; do
 done
 
 cd "$DEV_ENV"
-sudo -v
 stow -D -v --target="$HOME" home
 stow -v --no-folding --target="$HOME" home
-
-battery_service="$DEV_ENV/etc/systemd/system/battery-charge-threshold.service" 
-sudo rm "$battery_service"
-sudo cp "$battery_service" /etc/systemd/system/
 
 echo "Dotfiles setup complete!"

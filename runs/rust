@@ -14,5 +14,5 @@ rusttar="${rustbase}.tar.xz"
 wget https://static.rust-lang.org/dist/${rusttar} -O ${TMPDIR}/${rusttar}
 
 mkdir -p ${TMPDIR}/${rustbase}
-tar xf ${{TMPDIR}}/${rusttar} -C ${{TMPDIR}}
+tar xf ${TMPDIR}/${rusttar} -C ${TMPDIR}
 ${TMPDIR}/${rustbase}/install.sh --prefix=$HOME/.local/rust

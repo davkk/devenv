@@ -2,6 +2,7 @@ window#waybar {
     background-color: #000000;
     color: #888888;
     font-size: 18px;
+    font-family: monospace;
 }
 
 #workspaces button.active,
@@ -14,4 +15,7 @@ window#waybar {
 
 #backlight, #wireplumber, #battery, #power-profiles-daemon, #clock {
     padding: 0 15px;
+}
+#power-profiles-daemon {
+    min-width: 40px;
 }
