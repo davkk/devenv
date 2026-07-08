@@ -4,9 +4,9 @@ screenshot-path "~/Pictures/Screenshots/screenshot-%Y-%m-%d-%H-%M-%S.png"
 
 prefer-no-csd
 
-animations { 
+animations {
     // off
-    slowdown 0.3
+    slowdown 0.2
 }
 
 input {
@@ -60,6 +60,12 @@ layout {
         width 4
         active-color "#222222"
         inactive-color "#000000"
+    }
+    tab-indicator {
+        width 8
+        gap 0
+        length total-proportion=1.0
+        place-within-column
     }
 }
 
@@ -149,6 +155,10 @@ binds {
 
     Mod+M { maximize-window-to-edges; }
 
+    Mod+W { toggle-column-tabbed-display; }
+    Mod+BracketLeft { consume-or-expel-window-left; }
+    Mod+BracketRight { consume-or-expel-window-right; }
+
     Mod+Minus { set-column-width "-10%"; }
     Mod+Equal { set-column-width "+10%"; }
     Mod+Shift+Minus { set-window-height "-10%"; }
@@ -174,6 +184,8 @@ window-rule {
     match app-id="1password"
     match title="Emulator"
     open-floating true
+    default-column-width { fixed 1280; }
+    default-window-height { fixed 800; }
 }
 window-rule {
     match app-id=r#"^org\.keepassxc\.KeePassXC$"#

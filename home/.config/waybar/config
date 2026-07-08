@@ -1,17 +1,15 @@
 {
     "layer": "top",
-    "position": "top",
+    "position": "bottom",
     "modules-left": [
         "niri/workspaces"
-    ],
-    "modules-center": [
-        "clock"
     ],
     "modules-right": [
         "backlight",
         "wireplumber",
         "battery",
         "power-profiles-daemon",
+        "clock"
     ],
     "wireplumber": {
         "format": "󰕾 {volume}%",
