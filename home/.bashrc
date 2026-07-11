@@ -73,6 +73,7 @@ last_exit=0
 git_info=""
 git_root=""
 virt_info=""
+docker_info=""
 cmd_start=0
 cmd_duration=0
 
@@ -104,6 +105,12 @@ _prompt_precmd() {
     # virtual environment
     virt_info=""
     [[ -n "$VIRTUAL_ENV" ]] && virt_info=" \[\e[33m\]${VIRTUAL_ENV##*/}\[\e[0m\]"
+
+    # docker container detection
+    docker_info=""
+    if [[ -f /.dockerenv ]] || grep -qE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
+        docker_info="\[\e[1m\]\[\e[36m\]docker:\[\e[0m\]"
+    fi
 
     # git
     git_info=""
@@ -176,7 +183,7 @@ _build_ps1() {
 
     local osc_a="\[\e]133;A\a\]"
     local osc_b="\[\e]133;B\a\]"
-    PS1="${osc_a}${prompt_ssh}${prompt_dir}${git_info}${virt_info}${prompt_time}\n${prompt_jobs}${prompt_char} ${osc_b}"
+    PS1="${osc_a}${prompt_ssh}${docker_info}${prompt_dir}${git_info}${virt_info}${prompt_time}\n${prompt_jobs}${prompt_char} ${osc_b}"
 }
 
 PROMPT_COMMAND="_prompt_precmd"
