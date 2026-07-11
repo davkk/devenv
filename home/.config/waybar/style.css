@@ -1,21 +1,24 @@
+* {
+    min-height: 0;
+    margin: 0;
+}
+
 window#waybar {
     background-color: #000000;
     color: #888888;
-    font-size: 18px;
     font-family: monospace;
+}
+
+#workspaces button, #backlight, #wireplumber, #battery, #power-profiles-daemon, #clock {
+    color: inherit;
+    padding: 3px 10px;
 }
 
 #workspaces button.active,
 #workspaces button.focused {
     color: #ffffff;
 }
-#workspaces button {
-    color: inherit;
-}
 
-#backlight, #wireplumber, #battery, #power-profiles-daemon, #clock {
-    padding: 0 15px;
-}
 #power-profiles-daemon {
-    min-width: 40px;
+    min-width: 30px;
 }

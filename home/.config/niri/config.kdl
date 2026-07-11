@@ -13,7 +13,7 @@ input {
     keyboard {
         xkb {
             layout "us,pl"
-            options "caps:escape,grp:rctrl_rshift_toggle"
+            options "caps:escape,grp:ralt_rshift_toggle"
         }
         repeat-delay 400
         repeat-rate 50
@@ -30,8 +30,8 @@ input {
 }
 
 output "eDP-1" {
-    mode "2880x1800@120.000"
-    scale 1.25
+    mode "2880x1800@60.000"
+    scale 1.5
     position x=0 y=0
 }
 output "HDMI-A-1" { }
@@ -57,7 +57,7 @@ layout {
     default-column-width { proportion 1.0; }
     focus-ring { off; }
     border {
-        width 4
+        width 3
         active-color "#222222"
         inactive-color "#000000"
     }

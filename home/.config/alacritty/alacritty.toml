@@ -7,9 +7,6 @@ resize_increments = true
 history = 100000
 multiplier = 5
 
-[font]
-size = 18
-
 [colors.primary]
 background = "#000000"
 
