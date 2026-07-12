@@ -1,6 +1,13 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
+vim.g.netrw_banner = 0
+vim.g.netrw_cursor = 0
+vim.g.netrw_altfile = 1
+vim.g.netrw_sort_sequence = [[[\/]$,*]]
+
+vim.g.loaded_nvim_dir_plugin = 1
+
 vim.o.termguicolors = true
 vim.o.exrc = true
 
@@ -65,11 +72,6 @@ vim.o.winblend = 5
 vim.o.wildmode = "noselect"
 vim.opt.wildoptions:append "fuzzy"
 
-vim.g.netrw_banner = 0
-vim.g.netrw_cursor = 0
-vim.g.netrw_altfile = 1
-vim.g.netrw_sort_sequence = [[[\/]$,*]]
-
 vim.o.grepprg = "rg --vimgrep --color=never --no-heading --smart-case --hidden --glob=!.git"
 vim.opt.grepformat:prepend "%f:%l:%c:%m"
 
@@ -116,7 +118,7 @@ for i = 1, 5 do
 end
 
 vim.keymap.set("n", "<C-e>", function()
-    return vim.bo.filetype == "netrw" and vim.cmd.Rexplore() or vim.cmd.Explore()
+    return vim.bo.filetype == "netrw" and vim.cmd.Rexplore() or vim.cmd.Explore "%:p:h"
 end)
 
 vim.keymap.set("n", "grq", function()
