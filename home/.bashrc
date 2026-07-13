@@ -2,29 +2,10 @@ export XDG_CONFIG_HOME=$HOME/.config
 export XDG_CACHE_HOME=$HOME/.cache
 export XDG_DATA_HOME=$HOME/.local/share
 
-sd() {
-    local dirs=(~/ ~/git ~/projects ~/work ~/personal)
-    local selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60%)
-    [ -n "$selected" ] && cd $selected || echo "no directory selected"
-}
-
-nvim() {
-    if [[ -n $NVIM ]]; then
-        command nvim --server $NVIM --remote "${@:-.}"
-    else
-        command nvim "$@"
-    fi
-}
-
-alias l="ls --color -lahF --group-directories-first"
-
 shopt -s histappend
 export HISTCONTROL=ignoredups:erasedups
-export HISTFILE=$XDG_DATA_HOME/bash_history
 export HISTSIZE=100000000
 export SAVEHIST=$HISTSIZE
-
-export GIT_CONFIG_GLOBAL=$XDG_CONFIG_HOME/.gitconfig
 
 export VOLTA_HOME="$HOME/.local/volta"
 export CARGO_HOME="$HOME/.local/cargo"
@@ -32,9 +13,8 @@ export RUSTUP_HOME="$HOME/.local/rustup"
 export OPAM_SWITCH_PREFIX="$HOME/.local/opam"
 export NPM_CONFIG_PREFIX="$HOME/.local/npm"
 export ZVM_PATH="$HOME/.local/zvm"
-export GOBIN="$HOME/.local/go/bin"
-export ANDROID_SDK_ROOT=$HOME/.android
-export ANDROID_AVD_HOME=$HOME/.android
+export GOPATH="$HOME/.local/go"
+export GOBIN="$GOPATH/bin"
 
 export PATH=$PATH:$HOME/.local/bin
 export PATH=$PATH:$HOME/.local/go/bin
@@ -46,26 +26,15 @@ export PATH=$PATH:$VOLTA_HOME/bin
 export PATH=$PATH:$ZVM_HOME/bin
 export PATH=$PATH:$CARGO_HOME/bin
 export PATH=$PATH:$NPM_CONFIG_PREFIX/bin
-export PATH=$PATH:$HOME/.android/cmdline-tools/latest/bin
-export PATH=$PATH:$HOME/.android/emulator
-export PATH=$PATH:$HOME/.android/platform-tools
 
-export FZF_BASE=$(which fzf 2>/dev/null || echo "/usr/bin/fzf")
-export FZF_DEFAULT_OPTS="
---color=fg:#888888,bg:#111111,hl:#ffffff
---color=fg+:#888888,bg+:#222222,hl+:#ffffff
---color=border:#222222,header:#888888,gutter:#111111
---color=spinner:#ffffff,info:#888888
---color=pointer:#ffffff,marker:#ffffff,prompt:#ffffff
---bind=ctrl-y:accept
---layout=reverse
-"
+export EDITOR=$(which nvim 2>/dev/null || echo vim)
+export SUDO_EDITOR=$EDITOR
 
-export _JAVA_AWT_WM_NONREPARENTING=1
-
-export SUDO_EDITOR=$(which nvim 2>/dev/null || echo "vim")
-export EDITOR=$(which nvim 2>/dev/null || echo "vim")
-export MANPAGER="$(which nvim 2>/dev/null || echo "vim") +Man!"
+sd() {
+    local dirs=(~/ ~/git ~/projects ~/work ~/personal)
+    local selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60%)
+    [ -n "$selected" ] && cd $selected || echo "no directory selected"
+}
 
 # ---- prompt config ----
 
@@ -187,16 +156,3 @@ _build_ps1() {
 }
 
 PROMPT_COMMAND="_prompt_precmd"
-
-# ---- prompt config ----
-
-source <(fzf --bash 2>/dev/null)
-
-if command -v luarocks >/dev/null 2>&1; then
-    eval $(luarocks path --lua-version 5.1 --no-bin 2>/dev/null) 2>/dev/null
-fi
-
-if command -v direnv >/dev/null 2>&1; then
-    export DIRENV_LOG_FORMAT=
-    eval "$(direnv hook bash 2>/dev/null)" 2>/dev/null
-fi
