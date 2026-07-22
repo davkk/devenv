@@ -32,59 +32,42 @@ export SUDO_EDITOR=$EDITOR
 
 sd() {
     local dirs=(~/ ~/git ~/projects ~/work ~/personal)
-    local selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60%)
+    local selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60% --reverse)
     [ -n "$selected" ] && cd $selected || echo "no directory selected"
 }
 
 # ---- prompt config ----
-
 last_exit=0
 git_info=""
 git_root=""
 virt_info=""
 docker_info=""
-cmd_start=0
-cmd_duration=0
-
-_prompt_preexec() {
-    [[ "${COMP_LINE:-}" != "" ]] && return
-    [[ ";${PROMPT_COMMAND};" == *";${BASH_COMMAND};"* ]] && return
-    cmd_start=$SECONDS
-}
-trap "_prompt_preexec" DEBUG
 
 PS0="\e]133;C\a"
 
 _prompt_precmd() {
     last_exit=$?
-
     printf "\e]133;D;%s\a" "$last_exit"
-
-    # real-time history
     history -a
-
-    # execution time
-    if (( cmd_start )); then
-        cmd_duration=$(( SECONDS - cmd_start ))
-    else
-        cmd_duration=0
-    fi
-    cmd_start=0
 
     # virtual environment
     virt_info=""
     [[ -n "$VIRTUAL_ENV" ]] && virt_info=" \[\e[33m\]${VIRTUAL_ENV##*/}\[\e[0m\]"
 
-    # docker container detection
+    # docker/podman detection
     docker_info=""
-    if [[ -f /.dockerenv ]] || grep -qE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
+    if [[ -f /.dockerenv ]]; then
         docker_info="\[\e[1m\]\[\e[36m\]docker:\[\e[0m\]"
+    elif [[ -f /run/.containerenv ]]; then
+        docker_info="\[\e[1m\]\[\e[36m\]podman:\[\e[0m\]"
     fi
 
     # git
     git_info=""
+    git_root=""
     local st
     st=$(git status --porcelain -b 2>/dev/null) || { _build_ps1; return; }
+    git_root=$(git rev-parse --show-toplevel 2>/dev/null)
     IFS= read -r line <<< "$st"
     local branch=${line#\#\# }
     branch=${branch%%...*}
@@ -94,65 +77,37 @@ _prompt_precmd() {
     fi
     [[ $line =~ ahead\ ([0-9]+)  ]] && ahead=${BASH_REMATCH[1]}
     [[ $line =~ behind\ ([0-9]+) ]] && behind=${BASH_REMATCH[1]}
-    [[ $st == *$"\n"?* ]] && dirty="*"
+    [[ $st == *$'\n'?* ]] && dirty="*"
     git_info=" \[\e[35m\]${branch}${dirty}\[\e[0m\]"
     (( ahead  )) && git_info+="\[\e[36m\] +${ahead}\[\e[0m\]"
     (( behind )) && git_info+="\[\e[36m\] -${behind}\[\e[0m\]"
     _build_ps1
 }
 
-_find_git_marker() {
-    local dir="$PWD"
-    local path=""
-    local part
-    while IFS= read -r -d"/" part; do
-        path="$path/$part"
-        [[ -e "$path/.git" ]] && echo "$path" && return 0
-    done <<< "${dir#/}/"
-    return 1
-}
-
 _build_ps1() {
     local d
-    local git_marker=$(_find_git_marker "$PWD")
-    if [[ -n "$git_marker" ]]; then
-        d="${git_marker##*/}${PWD#$git_marker}"
+    if [[ -n "$git_root" ]]; then
+        d="${git_root##*/}${PWD#$git_root}"
     else
         d="${PWD/#$HOME/\~}"
     fi
 
     local prompt_ssh=""
-    if [[ -n "${SSH_CLIENT:-}${SSH_TTY:-}${SSH_CONNECTION:-}" ]]; then
-        prompt_ssh="\[\e[1m\]\[\e[32m\]\h:\[\e[0m\]"
-    fi
+    [[ -n "${SSH_CLIENT:-}${SSH_TTY:-}${SSH_CONNECTION:-}" ]] && prompt_ssh="\[\e[1m\]\[\e[32m\]\h:\[\e[0m\]"
 
     local prompt_dir="\[\e[1m\]\[\e[34m\]${d}\[\e[0m\]"
 
-    local prompt_time=""
-    if (( cmd_duration >= 5 )); then
-        local secs=$cmd_duration out=""
-        (( secs >= 86400 )) && out+="$(( secs/86400 ))d " && secs=$(( secs%86400 ))
-        (( secs >= 3600  )) && out+="$(( secs/3600  ))h " && secs=$(( secs%3600  ))
-        (( secs >= 60    )) && out+="$(( secs/60    ))m " && secs=$(( secs%60    ))
-        prompt_time=" \[\e[90m\]${out}${secs}s\[\e[0m\]"
-    fi
-
-    local prompt_jobs=""
-    local job_count
+    local job_count prompt_jobs=""
     job_count=$(jobs -p 2>/dev/null | wc -l)
     (( job_count > 0 )) && prompt_jobs="\[\e[90m\]+${job_count}\[\e[0m\] "
 
-    local symbol; (( EUID == 0 )) && symbol="#" || symbol="%"
-    local prompt_char
-    if (( last_exit )); then
-        prompt_char="\[\e[1m\]\[\e[31m\]${symbol}\[\e[0m\]"
-    else
-        prompt_char="\[\e[1m\]\[\e[37m\]${symbol}\[\e[0m\]"
-    fi
+    local symbol="%"; (( EUID == 0 )) && symbol="#"
+    local prompt_char="\[\e[1m\]\[\e[37m\]${symbol}\[\e[0m\]"
+    (( last_exit )) && prompt_char="\[\e[1m\]\[\e[31m\]${symbol}\[\e[0m\]"
 
     local osc_a="\[\e]133;A\a\]"
     local osc_b="\[\e]133;B\a\]"
-    PS1="${osc_a}${prompt_ssh}${docker_info}${prompt_dir}${git_info}${virt_info}${prompt_time}\n${prompt_jobs}${prompt_char} ${osc_b}"
+    PS1="${osc_a}${prompt_ssh}${docker_info}${prompt_dir}${git_info}${virt_info}\n${prompt_jobs}${prompt_char} ${osc_b}"
 }
 
 PROMPT_COMMAND="_prompt_precmd"
