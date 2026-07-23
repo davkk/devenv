@@ -13,7 +13,7 @@ export RUSTUP_HOME="$HOME/.local/rustup"
 export OPAM_SWITCH_PREFIX="$HOME/.local/opam"
 export NPM_CONFIG_PREFIX="$HOME/.local/npm"
 export ZVM_PATH="$HOME/.local/zvm"
-export GOPATH="$HOME/.local/go"
+export GOPATH="$HOME/.local/golang"
 export GOBIN="$GOPATH/bin"
 
 export PATH=$PATH:$HOME/.local/bin
@@ -29,6 +29,8 @@ export PATH=$PATH:$NPM_CONFIG_PREFIX/bin
 
 export EDITOR=$(which nvim 2>/dev/null || echo vim)
 export SUDO_EDITOR=$EDITOR
+
+export FZF_DEFAULT_OPTS="--reverse"
 
 sd() {
     local dirs=(~/ ~/git ~/projects ~/work ~/personal)
@@ -111,3 +113,11 @@ _build_ps1() {
 }
 
 PROMPT_COMMAND="_prompt_precmd"
+# ---- prompt config ----
+
+source <(fzf --bash 2>/dev/null)
+
+if command -v direnv >/dev/null 2>&1; then
+    export DIRENV_LOG_FORMAT=
+    eval "$(direnv hook bash 2>/dev/null)" 2>/dev/null
+fi
