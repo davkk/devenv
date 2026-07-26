@@ -74,7 +74,11 @@ vim.opt.complete:append "o"
 vim.opt.completeopt:append { "menuone", "noinsert", "fuzzy" }
 vim.opt.wildoptions:append "fuzzy"
 
-vim.keymap.set("n", "-", "<cmd>Explore %:h<CR>")
+vim.keymap.set(
+    "n",
+    "-",
+    function() return vim.api.nvim_buf_get_name(0) == "" and vim.cmd.Explore "." or vim.cmd.Explore "%:h" end
+)
 vim.keymap.set({ "n", "v" }, "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
 vim.keymap.set({ "n", "v" }, "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 for i = 1, 5 do
@@ -168,45 +172,11 @@ vim.api.nvim_set_hl(0, "DiffAdd", { bg = "none", fg = "none", update = true })
 vim.api.nvim_set_hl(0, "DiffChange", { fg = "none", update = true })
 vim.api.nvim_set_hl(0, "DiffText", { fg = "none", update = true })
 
-local ft = {
-    cpp = function()
-        vim.opt_local.iskeyword = vim.api.nvim_get_option_info2("iskeyword", {}).default
-        vim.opt_local.formatprg = "clang-format -assume-filename %"
-    end,
-    go = function() vim.opt_local.formatprg = "gofmt" end,
-    lua = function() vim.opt_local.formatprg = "stylua --stdin-filepath % --search-parent-directories -" end,
-    python = function() vim.opt_local.formatprg = "ruff format --force-exclude --stdin-filename % -" end,
-    zig = function() vim.opt_local.formatprg = "zig fmt --stdin" end,
-    javascript = function() vim.opt_local.formatprg = "eslint_d --stdin --stdin-filename % --fix-to-stdout" end,
-    make = function() vim.opt_local.expandtab = false end,
-    qf = function() vim.cmd.packadd "cfilter" end,
-    netrw = function()
-        vim.bo.bufhidden = "wipe"
-        vim.keymap.set(
-            "n",
-            "_",
-            function() vim.cmd.Explore(vim.fn.getcwd()) end,
-            { buffer = true, noremap = true, silent = true }
-        )
-    end,
-    txt = function()
-        vim.opt_local.wrap = true
-        vim.opt_local.spell = true
-        vim.opt_local.spelllang = { "en" }
-    end,
-}
-ft.gitcommit = ft.txt
-ft.markdown = ft.txt
-ft.text = ft.txt
-ft.typst = ft.txt
-ft.typescript = ft.javascript
-
 vim.api.nvim_create_autocmd("FileType", {
     group = vim.api.nvim_create_augroup("user.ftplugin", { clear = true }),
-    pattern = vim.tbl_keys(ft),
-    callback = function(ev)
+    pattern = "*",
+    callback = function()
         if pcall(vim.treesitter.start) then vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()" end
-        if ft[ev.match] then vim.schedule(ft[ev.match]) end
     end,
 })
 
