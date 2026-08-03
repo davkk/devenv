@@ -5,7 +5,7 @@ vim.g.netrw_cursor = 0
 vim.g.netrw_altfile = 1
 vim.g.loaded_nvim_dir_plugin = 1
 
-vim.o.termguicolors = true
+vim.o.termguicolors = false
 vim.o.number = true
 vim.o.laststatus = 1
 vim.o.shiftwidth = 4
@@ -17,11 +17,9 @@ vim.o.ignorecase = true
 vim.o.clipboard = "unnamedplus"
 vim.o.undofile = true
 vim.o.swapfile = false
-vim.o.listchars = "trail:·,nbsp:␣"
+vim.o.list = true
 vim.o.completeopt = "menuone,noinsert,fuzzy"
 vim.o.pumheight = 10
-vim.o.pumblend = 5
-vim.o.winblend = 5
 vim.o.wildmode = "noselect"
 vim.o.wildoptions = "pum,tagfile,fuzzy"
 vim.o.guicursor = vim.o.guicursor .. ",t:ver100-blinkon0-TermCursor"
@@ -44,26 +42,8 @@ vim.keymap.set("n", "<leader>u", function()
     vim.cmd.Undotree()
 end)
 
-vim.api.nvim_create_autocmd("TextYankPost", {
-    group = vim.api.nvim_create_augroup("user.yank", { clear = true }),
-    pattern = "*",
-    callback = function() vim.hl.on_yank { timeout = 150 } end,
-})
-
-vim.api.nvim_set_hl(0, "Normal", { bg = "none", update = true })
-vim.api.nvim_set_hl(0, "NormalFloat", { link = "Pmenu" })
-vim.api.nvim_set_hl(0, "StatusLine", { link = "StatusLineNC" })
-vim.api.nvim_set_hl(0, "StatusLineTermNC", { link = "StatusLineNC" })
-vim.api.nvim_set_hl(0, "DiffAdd", { bg = "none", update = true })
-vim.api.nvim_set_hl(0, "DiffChange", { fg = "none", update = true })
-vim.api.nvim_set_hl(0, "DiffText", { fg = "none", update = true })
-
-vim.api.nvim_create_autocmd("FileType", {
-    group = vim.api.nvim_create_augroup("user.ftplugin", { clear = true }),
-    pattern = "*",
-    callback = function() pcall(vim.treesitter.start) end,
-})
-
+vim.cmd.colorscheme "habamax"
+vim.api.nvim_set_hl(0, "Normal", { bg = "none", ctermbg = "none", update = true })
 require("vim._core.ui2").enable()
 
 vim.pack.add {
@@ -75,10 +55,10 @@ require("nvim-treesitter").install { "lua", "cpp", "python", "go", "zig", "ocaml
 vim.g.quickfill = {
     url = "http://localhost:8012",
     model = "sweep-next-edit-1.5b.q8_0.v2",
-    chunk_lines = 4,
-    max_extra_chunks = 3,
-    n_suffix = 8,
-    n_prefix = 8,
+    chunk_lines = 32,
+    max_extra_chunks = 4,
+    n_suffix = 32,
+    n_prefix = 16,
     max_lsp_completion_items = 10,
     fresh_on_trigger_char = false,
 }
