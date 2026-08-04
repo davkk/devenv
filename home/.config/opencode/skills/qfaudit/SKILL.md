@@ -25,19 +25,25 @@ You must complete every item before producing output:
 <format>
 Each line in /tmp/audit.qf must follow this exact format:
 
-  {file}:{line}:{col}:{description}
+  {file}:{line}:{col}: {severity}: {description}
 
 Fields:
-- file        — most specific filename; logical target name if file doesn't exist yet; never "."
-- line        — best-known line number; use 1 if unknown
-- col         — best-known column; use 0 if not applicable
+- file       — most specific filename; logical target name if file doesn't exist yet; never "."
+- line       — best-known line number; use 1 if unknown
+- col        — best-known column; use 1 if not applicable
+- severity   — one of: error, note, warning
 - description — one short imperative sentence; start with a verb; no trailing period
 
+Note: This format matches the vim errorformat patterns in the user's config:
+  %E%f:%l:%c: error: %m
+  %I%f:%l:%c: note: %m
+  %W%f:%l:%c: warning: %m
+
 Examples:
-  app/auth.py:1:0:JWT middleware missing — all routes unprotected
-  README.md:87:0:add config reference table for all env vars
-  main.go:42:12:handle error return from os.Open
-  task.md:1:0:no outstanding items — all requested work appears complete
+  app/auth.py:1:1: error: JWT middleware missing — all routes unprotected
+  README.md:87:1: note: add config reference table for all env vars
+  main.go:42:12: warning: handle error return from os.Open
+  task.md:1:1: note: no outstanding items — all requested work appears complete
 </format>
 
 <rules>
@@ -51,14 +57,14 @@ Examples:
 
 <sentinel>
 Only when every part of the prompt is fully addressed, write exactly:
-  task.md:1:0:no outstanding items — all requested work appears complete
+  task.md:1:1: note: no outstanding items — all requested work appears complete
 </sentinel>
 
 <write_file>
 Use bash_tool to write the file:
 
   cat > /tmp/audit.qf << 'QFEOF'
-  app/auth.py:1:0:JWT middleware missing — all routes unprotected
+  app/auth.py:1:1: warning: JWT middleware missing — all routes unprotected
   QFEOF
 </write_file>
 
