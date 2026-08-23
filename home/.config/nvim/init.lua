@@ -32,7 +32,11 @@ function FindFunc(cmdarg)
 end
 vim.o.findfunc = "v:lua.FindFunc"
 
-vim.keymap.set("n", "-", "<cmd>Explore %:h<cr>")
+vim.keymap.set(
+    "n",
+    "-",
+    function() return vim.api.nvim_buf_get_name(0) == "" and vim.cmd.Explore() or vim.cmd.Explore "%:h" end
+)
 for i = 1, 5 do
     vim.keymap.set("n", "<M-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
 end
