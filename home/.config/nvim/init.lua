@@ -5,7 +5,6 @@ vim.g.netrw_cursor = 0
 vim.g.netrw_altfile = 1
 vim.g.loaded_nvim_dir_plugin = 1
 
-vim.o.termguicolors = false
 vim.o.number = true
 vim.o.laststatus = 1
 vim.o.shiftwidth = 4
@@ -22,7 +21,7 @@ vim.o.completeopt = "menuone,noinsert,fuzzy"
 vim.o.pumheight = 10
 vim.o.wildmode = "noselect"
 vim.o.wildoptions = "pum,tagfile,fuzzy"
-vim.o.guicursor = vim.o.guicursor .. ",t:ver100-blinkon0-TermCursor"
+vim.o.guicursor = ""
 vim.o.diffopt = vim.o.diffopt .. ",algorithm:histogram,linematch:60,hiddenoff,iwhite"
 vim.o.grepprg = "rg --vimgrep --smart-case --hidden --glob=!.git"
 
@@ -42,7 +41,6 @@ vim.keymap.set("n", "<leader>u", function()
     vim.cmd.Undotree()
 end)
 
-vim.cmd.colorscheme "habamax"
 vim.api.nvim_set_hl(0, "Normal", { bg = "none", ctermbg = "none", update = true })
 require("vim._core.ui2").enable()
 

@@ -11,15 +11,10 @@
                 "baseURL": "http://localhost:8012"
             },
             "models": {
-                "Qwen3.5-2B-Q4_0": {
-                    "name": "Qwen3.5-2B-Q4_0"
+                "Qwen3.6-35B-A3B-UD-Q4_K_S": {
+                    "name": "Qwen3.6-35B-A3B-UD-Q4_K_S"
                 }
             }
         }
-    },
-    "agent": {
-        "general": { "mode": "subagent", "model": "opencode/deepseek-v4-flash-free" },
-        "explore": { "mode": "subagent", "model": "opencode/deepseek-v4-flash-free" },
-        "scout": { "mode": "subagent", "model": "opencode/deepseek-v4-flash-free" }
     }
 }

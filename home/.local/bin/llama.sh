@@ -11,4 +11,5 @@ llama-server \
     --models-preset ~/.config/llama.ini \
     --models-dir ~/llms \
     --models-max 2 \
-    --threads 8
+    --no-mmap \
+    --threads 4
