@@ -27,6 +27,6 @@ if command -v op 2>/dev/null; then
         HostName github.com
         PreferredAuthentications publickey
         IdentityFile ~/.ssh/github
-    EOF
+EOF
     fi
 fi

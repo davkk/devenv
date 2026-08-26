@@ -1,6 +1,5 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
-vim.g.netrw_banner = 0
 vim.g.netrw_cursor = 0
 vim.g.netrw_altfile = 1
 vim.g.loaded_nvim_dir_plugin = 1
