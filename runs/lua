@@ -2,26 +2,13 @@
 
 set -euo pipefail
 
-BIN_DIR="$HOME/.local/bin"
-GIT_DIR="$HOME/git"
+BINDIR="$HOME/.local/bin"
 
-if ! command -v lua &>/dev/null || ! command -v luarocks &>/dev/null; then
-    case "$OS" in
-        fedora) sudo dnf install -y lua5.1 luarocks libstdc++-static ;;
-        ubuntu) sudo apt-get install -y lua5.1 luarocks libstdc++-12-dev ;;
-    esac
+if command -v lua &>/dev/null && command -v luarocks &>/dev/null; then
+    exit 0
 fi
 
-if ! command -v stylua &>/dev/null; then
-    tmp_dir="${TMPDIR}/stylua-$$"
-    mkdir -p "$tmp_dir"
-    wget -O "$tmp_dir/stylua-linux-x86_64.zip" "https://github.com/JohnnyMorganz/StyLua/releases/download/v2.4.1/stylua-linux-x86_64.zip"
-    unzip -j "$tmp_dir/stylua-linux-x86_64.zip" -d "$BIN_DIR" "stylua"
-    rm -rf "$tmp_dir"
-fi
-
-if ! command -v lua-language-server &>/dev/null; then
-    install_dir="$GIT_DIR/lua-language-server"
-    wget "https://github.com/LuaLS/lua-language-server/releases/download/3.18.2/lua-language-server-3.18.2-linux-x64.tar.gz" -O $install_dir
-    ln -fs "$install_dir/bin/lua-language-server" "$BIN_DIR/lua-language-server"
-fi
+case "$OS" in
+    fedora) sudo dnf install -y lua5.1 luarocks libstdc++-static ;;
+    ubuntu) sudo apt-get install -y lua5.1 luarocks libstdc++-12-dev ;;
+esac

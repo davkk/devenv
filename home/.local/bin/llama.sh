@@ -9,7 +9,7 @@ llama-server \
     --host $host \
     --port $port \
     --models-preset ~/.config/llama.ini \
-    --models-dir ~/llms \
+    --models-dir ~/models \
     --models-max 2 \
     --no-mmap \
     --threads 4

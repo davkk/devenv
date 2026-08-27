@@ -6,20 +6,14 @@ if command -v fzf &>/dev/null; then
     exit 0
 fi
 
-GIT_DIR="$HOME/git"
-BIN_DIR="$HOME/.local/bin"
-INSTALL_DIR="$GIT_DIR/fzf"
-
-mkdir -p "$GIT_DIR" "$BIN_DIR"
-
-if [[ ! -d "$INSTALL_DIR/.git" ]]; then
-    git clone git@github.com:junegunn/fzf.git "$INSTALL_DIR"
+if [[ ! -d "$CODEDIR/fzf/.git" ]]; then
+    git clone https://github.com/junegunn/fzf "$CODEDIR/fzf"
 fi
 
-cd "$INSTALL_DIR"
+cd "$CODEDIR/fzf"
 git fetch
 git checkout v0.70.0
 
-$INSTALL_DIR/install --bin
+./install --bin
 
-ln -sf "$GIT_DIR/fzf/bin/fzf" "$BIN_DIR/fzf"
+ln -sf "$CODEDIR/fzf/bin/fzf" "$BINDIR/fzf"

@@ -2,15 +2,16 @@
 
 set -euo pipefail
 
-if ! command -v zvm &>/dev/null; then
-    go install -ldflags "-s -w" github.com/tristanisham/zvm@latest
+if command -v zig &>/dev/null; then
+    exit 0
 fi
 
-if ! command -v zig &>/dev/null; then
-    zvm install master
-    zvm use master
-fi
+ver="0.16.0"
+base="zig-x86_64-linux-${ver}"
+asset="${base}.tar.xz"
 
-if ! command -v zls &>/dev/null; then
-    zvm install --zls master
-fi
+cd $TMPDIR
+curl -fsSL -O "https://ziglang.org/download/${ver}/${asset}"
+tar -xf ${asset}
+mv ${base} ${OPTDIR}/zig
+ln -s ${OPTDIR}/zig/zig ${BINDIR}

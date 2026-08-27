@@ -2,15 +2,8 @@
 
 set -euo pipefail
 
-FILES=`find "$DEV_ENV/home" -maxdepth 1 -type f`
-for f in "${FILES[@]}"; do
-    base=`basename "$f"`
-    home_path="$HOME/$base"
-    if [[ -f "$home_path" && ! -L "$home_path" ]]; then
-        echo "  Backing up $home_path"
-        mv "$home_path" "$home_path.bak"
-    fi
-done
+mkdir -p "$HOME/.config"
+mkdir -p "$HOME/.local/share/fonts"
 
 cd "$DEV_ENV"
 stow -D -v --target="$HOME" home

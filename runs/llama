@@ -2,21 +2,20 @@
 
 set -euo pipefail
 
-# if command -v llama &>/dev/null || [[ -f "$HOME/git/llama.cpp/build/bin/llama-server" ]]; then
-#     exit 0
-# fi
+case "$OS" in
+    fedora) sudo dnf install -y vulkan-devel glslc spirv-headers-devel ;;
+    ubuntu) sudo apt-get install -y libvulkan-dev shaderc spirv-headers glslang-tools ;;
+esac
 
-GIT_DIR="$HOME/git"
-
-mkdir -p "$GIT_DIR"
-
-if [[ ! -d "$GIT_DIR/llama.cpp/.git" ]]; then
-    git clone git@github.com:ggerganov/llama.cpp.git "$GIT_DIR/llama.cpp"
+if command -v llama &>/dev/null; then
+    exit 0
 fi
 
-cd "$GIT_DIR/llama.cpp"
+if [[ ! -d "$CODEDIR/llama.cpp/.git" ]]; then
+    git clone https://github.com/ggerganov/llama.cpp "$CODEDIR/llama.cpp"
+fi
 
-rm -rf build
+cd "$CODEDIR/llama.cpp"
 cmake -B build -DBUILD_SHARED_LIBS=OFF -DGGML_VULKAN=ON
-cmake --build build --config Release -j 12
+cmake --build build --config Release -j
 sudo cmake --install build

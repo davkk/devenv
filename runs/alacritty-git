@@ -6,26 +6,27 @@ if command -v alacritty &>/dev/null; then
     exit 0
 fi
 
-GIT_DIR="$HOME/git"
-BIN_DIR="$HOME/.local/bin"
-INSTALL_DIR="$GIT_DIR/alacritty"
+if command -v cargo &>/dev/null; then
+    echo alacritty build requires cargo
+    exit 0
+fi
 
 case "$OS" in
     fedora) sudo dnf install -y cmake freetype-devel fontconfig-devel libxcb-devel libxkbcommon-devel g++ ;;
     ubuntu) sudo apt-get install -y cmake g++ pkg-config libfontconfig1-dev libxcb-xfixes0-dev libxkbcommon-dev python3
 esac
 
-if [[ ! -d "$GIT_DIR/alacritty/.git" ]]; then
-    git clone git@github.com:alacritty/alacritty.git "$INSTALL_DIR"
+if [[ ! -d "$CODEDIR/alacritty/.git" ]]; then
+    git clone https://github.com/alacritty/alacritty "$CODEDIR/alacritty"
 fi
 
-cd "$INSTALL_DIR"
+cd "$CODEDIR/alacritty"
 git fetch
 git checkout 96f488dd3fb08e636cb6a01818891ae2044184be
 
 cargo build --release
 
-sudo cp target/release/alacritty "$BIN_DIR/alacritty"
+sudo cp target/release/alacritty "$BINDIR/alacritty"
 sudo tic -xe alacritty,alacritty-direct extra/alacritty.info
 sudo cp extra/logo/alacritty-term.svg /usr/share/pixmaps/Alacritty.svg
 sudo desktop-file-install extra/linux/Alacritty.desktop

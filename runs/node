@@ -2,25 +2,27 @@
 
 set -euo pipefail
 
-if ! command -v volta &>/dev/null; then
-    tmp_dir="${TMPDIR}/volta"
-    mkdir -p "$tmp_dir"
-    wget "https://github.com/volta-cli/volta/releases/download/v2.0.2/volta-2.0.2-linux.tar.gz" -O "$tmp_dir/volta.tar.gz"
-    tar xf "$tmp_dir/volta.tar.gz" -C "$tmp_dir"
-    mv "$tmp_dir/volta" ~/.local/bin/
-    mv "$tmp_dir/volta-migrate" ~/.local/bin/
-    mv "$tmp_dir/volta-shim" ~/.local/bin/
-    rm -rf "$tmp_dir"
+if command -v node &>/dev/null && command -v npm &>/dev/null; then
+    exit 0
 fi
 
-export VOLTA_HOME="$HOME/.local/volta"
-export PATH="$PATH:$VOLTA_HOME/bin"
+BINDIR=$HOME/.local/bin
+OPTDIR=$HOME/.local/node
 
-if ! command -v node &>/dev/null; then
-    volta install node
-fi
+ver="v24.20.0"
+base="node-${ver}-linux-x64"
+asset="${base}.tar.xz"
 
-for pkg in typescript-language-server prettier eslint_d; do
+cd $TMPDIR
+curl -fsSL -O https://nodejs.org/dist/${ver}/${asset}
+tar -xf ${asset}
+mv ${base} $OPTDIR
+
+for file in bin/*; do
+    ln -s $OPTDIR/$file $BINDIR
+done
+
+for pkg in prettier eslint_d; do
     if ! command -v "$pkg" &>/dev/null; then
         npm install -g "$pkg"
     fi

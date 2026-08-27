@@ -5,15 +5,15 @@ set -euo pipefail
 case "$OS" in
     fedora)
         sudo dnf install -y \
-            gcc-c++ ninja-build \
-            git curl wget moreutils make cmake \
+            gcc-c++ gcc clang clang-tools-extra ninja-build \
+            git curl wget moreutils make cmake unzip \
             desktop-file-utils parallel tmux jq \
             stow btop unison
         ;;
     ubuntu)
         sudo apt-get install -y \
-            gcc-c++ ninja-build \
-            git curl wget moreutils make cmake \
+            gcc-c++ g++ clangd clang-format clang-tidy ninja-build \
+            git curl wget moreutils make cmake unzip \
             desktop-file-utils parallel tmux jq \
             stow btop unison
         ;;

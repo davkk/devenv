@@ -12,7 +12,15 @@ if [ -z "${DEV_ENV:-}" ]; then
 fi
 
 export DEV_ENV="$DEV_ENV"
-export TMPDIR="${TMPDIR:-/tmp}"
+
+export TMPDIR="${TMPDIR:-$(mktemp -d)}"
+
+export BINDIR="${HOME}/.local/bin"
+mkdir -p $BINDIR
+export OPTDIR="${HOME}/.local/opt"
+mkdir -p $OPTDIR
+export CODEDIR="${HOME}/code"
+mkdir -p $CODEDIR
 
 source "$lib_file"
 
@@ -67,5 +75,7 @@ for s in $runs_dir; do
         "$s"
     fi
 done
+
+rm -rf $TMPDIR
 
 log "Setup complete!"

@@ -1,7 +1,3 @@
-[terminal.shell]
-program = "/bin/bash"
-args = ["--login"]
-
 [window]
 dynamic_padding = true
 dynamic_title = false

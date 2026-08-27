@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if command -v tree-sitter &>/dev/null; then
+    exit 0
+fi
+
+ver="v0.24.7"
+base="tree-sitter-linux-x64"
+asset="${base}.gz"
+
+cd $TMPDIR
+curl -fsSL -O https://github.com/tree-sitter/tree-sitter/releases/download/${ver}/${asset}
+gzip -d ${asset}
+mv $base $BINDIR/tree-sitter
+chmod +x $BINDIR/tree-sitter

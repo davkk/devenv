@@ -13,6 +13,12 @@
             "models": {
                 "Qwen3.6-35B-A3B-UD-Q4_K_S": {
                     "name": "Qwen3.6-35B-A3B-UD-Q4_K_S"
+                },
+                "Qwen3.6-35B-A3B-UD-IQ1_M": {
+                    "name": "Qwen3.6-35B-A3B-UD-IQ1_M"
+                },
+                "Qwen3.8-27B-UD-Q2_K_XL": {
+                    "name": "Qwen3.8-27B-UD-Q2_K_XL"
                 }
             }
         }

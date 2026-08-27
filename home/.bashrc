@@ -7,12 +7,10 @@ export HISTCONTROL=ignoredups:erasedups
 export HISTSIZE=100000000
 export SAVEHIST=$HISTSIZE
 
-export VOLTA_HOME="$HOME/.local/volta"
 export CARGO_HOME="$HOME/.local/cargo"
 export RUSTUP_HOME="$HOME/.local/rustup"
 export OPAM_SWITCH_PREFIX="$HOME/.local/opam"
 export NPM_CONFIG_PREFIX="$HOME/.local/npm"
-export ZVM_PATH="$HOME/.local/zvm"
 export GOPATH="$HOME/.local/golang"
 export GOBIN="$GOPATH/bin"
 
@@ -21,9 +19,6 @@ export PATH=$PATH:$HOME/.local/go/bin
 export PATH=$PATH:$HOME/.local/rust/bin
 export PATH=$PATH:$HOME/.local/luarocks/bin
 export PATH=$PATH:$HOME/.local/opam/bin
-export PATH=$PATH:$HOME/.local/zvm/bin
-export PATH=$PATH:$VOLTA_HOME/bin
-export PATH=$PATH:$ZVM_HOME/bin
 export PATH=$PATH:$CARGO_HOME/bin
 export PATH=$PATH:$NPM_CONFIG_PREFIX/bin
 
@@ -32,8 +27,10 @@ export SUDO_EDITOR=$EDITOR
 
 export FZF_DEFAULT_OPTS="--reverse"
 
+alias l='ls -lah --color=auto --group-directories-first'
+
 sd() {
-    local dirs=(~/ ~/git ~/projects ~/work ~/personal)
+    local dirs=(~/ ~/code/)
     local selected=$(find "${dirs[@]}" -mindepth 1 -maxdepth 1 -type d | fzf --height ~60% --reverse)
     [ -n "$selected" ] && cd $selected || echo "no directory selected"
 }
