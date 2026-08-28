@@ -5,11 +5,11 @@ export GGML_VK_PREFER_HOST_MEMORY=1
 host=${1:-localhost}
 port=${2:-8012}
 
-llama-server \
+systemd-run --user --scope -p MemoryMax=25G llama-server \
     --host $host \
     --port $port \
-    --models-preset ~/.config/llama.ini \
+    --models-preset ~/.config/llama.cpp/presets.ini \
     --models-dir ~/models \
     --models-max 2 \
-    --no-mmap \
+    --load-mode none \
     --threads 4
