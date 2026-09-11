@@ -7,6 +7,7 @@ vim.g.loaded_nvim_dir_plugin = 1
 vim.o.number = true
 vim.o.laststatus = 1
 vim.o.shiftwidth = 4
+vim.o.tabstop = 4
 vim.o.splitright = true
 vim.o.splitbelow = true
 vim.o.expandtab = true
