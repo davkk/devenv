@@ -1,8 +1,8 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
-vim.g.netrw_cursor = 0
-vim.g.netrw_altfile = 1
-vim.g.loaded_nvim_dir_plugin = 1
+
+vim.g.loaded_netrwPlugin = 1
+vim.g.loaded_netrw = 1
 
 vim.o.number = true
 vim.o.laststatus = 1
@@ -32,11 +32,6 @@ function FindFunc(cmdarg)
 end
 vim.o.findfunc = "v:lua.FindFunc"
 
-vim.keymap.set(
-    "n",
-    "-",
-    function() return vim.api.nvim_buf_get_name(0) == "" and vim.cmd.Explore() or vim.cmd.Explore "%:h" end
-)
 for i = 1, 5 do
     vim.keymap.set("n", "<M-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
 end
