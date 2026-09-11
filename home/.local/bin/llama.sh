@@ -11,5 +11,4 @@ systemd-run --user --scope -p MemoryMax=25G llama-server \
     --models-preset ~/.config/llama.cpp/presets.ini \
     --models-dir ~/models \
     --models-max 2 \
-    --load-mode none \
     --threads 4
