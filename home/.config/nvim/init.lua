@@ -3,7 +3,6 @@ vim.g.maplocalleader = " "
 
 vim.g.loaded_netrwPlugin = 1
 vim.g.loaded_netrw = 1
-
 vim.o.number = true
 vim.o.laststatus = 1
 vim.o.shiftwidth = 4
@@ -40,6 +39,10 @@ vim.keymap.set("n", "<leader>u", function()
     vim.cmd.Undotree()
 end)
 
+vim.api.nvim_create_autocmd("FileType", {
+    group = vim.api.nvim_create_group("user.treesitter", { clear = true }),
+    callback = function() pcall(vim.treesitter.start) end,
+})
 vim.api.nvim_set_hl(0, "Normal", { bg = "none", ctermbg = "none", update = true })
 require("vim._core.ui2").enable()
 
