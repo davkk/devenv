@@ -6,20 +6,17 @@ if command -v node &>/dev/null && command -v npm &>/dev/null; then
     exit 0
 fi
 
-BINDIR=$HOME/.local/bin
-OPTDIR=$HOME/.local/node
-
 ver="v24.20.0"
 base="node-${ver}-linux-x64"
 asset="${base}.tar.xz"
 
-cd $TMPDIR
-curl -fsSL -O https://nodejs.org/dist/${ver}/${asset}
-tar -xf ${asset}
-mv ${base} $OPTDIR
+cd "${TMPDIR}"
+curl -fsSL -O "https://nodejs.org/dist/${ver}/${asset}"
+tar -xf "${asset}"
+mv "${base}" "${OPTDIR}/node"
 
-for file in bin/*; do
-    ln -s $OPTDIR/$file $BINDIR
+for file in ${OPTDIR}/node/bin/*; do
+    ln -sf "$file" "${BINDIR}/$(basename "$file")"
 done
 
 for pkg in prettier eslint_d; do

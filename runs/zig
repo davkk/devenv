@@ -10,8 +10,8 @@ ver="0.16.0"
 base="zig-x86_64-linux-${ver}"
 asset="${base}.tar.xz"
 
-cd $TMPDIR
+cd "${TMPDIR}"
 curl -fsSL -O "https://ziglang.org/download/${ver}/${asset}"
-tar -xf ${asset}
-mv ${base} ${OPTDIR}/zig
-ln -s ${OPTDIR}/zig/zig ${BINDIR}
+tar -xf "${asset}"
+mv "${base}" "${OPTDIR}/zig"
+ln -sf "${OPTDIR}/zig/zig" "${BINDIR}/zig"

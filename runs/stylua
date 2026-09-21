@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-BINDIR="$HOME/.local/bin"
-
 if command -v stylua &>/dev/null; then
     exit 0
 fi
@@ -12,6 +10,6 @@ ver="v2.4.1"
 base="stylua-linux-x86_64"
 asset="${base}.zip"
 
-cd $TMPDIR
+cd "${TMPDIR}"
 curl -fsSL -O "https://github.com/JohnnyMorganz/StyLua/releases/download/${ver}/${asset}"
-unzip -j ${asset} -d "$BINDIR" stylua
+unzip -j "${asset}" -d "${BINDIR}" stylua

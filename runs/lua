@@ -2,8 +2,6 @@
 
 set -euo pipefail
 
-BINDIR="$HOME/.local/bin"
-
 if command -v lua &>/dev/null && command -v luarocks &>/dev/null; then
     exit 0
 fi

@@ -15,7 +15,7 @@ sudo chown -R "$(id -u):$(id -g)" "$CODEDIR/neovim"
 sudo make install
 
 if [[ ! -d "$CODEDIR/quickfill.nvim" ]]; then
-    PLUGIN_DIR="$HOME/.local/share/nvim/site/pack/local/start"
+    PLUGIN_DIR="${XDG_DATA_HOME}/nvim/site/pack/local/start"
     mkdir -p "$PLUGIN_DIR"
     git clone https://github.com/davkk/quickfill.nvim "$CODEDIR/quickfill.nvim"
     ln -fs "$CODEDIR/quickfill.nvim" "$PLUGIN_DIR"

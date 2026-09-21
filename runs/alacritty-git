@@ -6,8 +6,8 @@ if command -v alacritty &>/dev/null; then
     exit 0
 fi
 
-if command -v cargo &>/dev/null; then
-    echo alacritty build requires cargo
+if ! command -v cargo &>/dev/null; then
+    echo "alacritty build requires cargo" >&2
     exit 0
 fi
 
@@ -26,7 +26,7 @@ git checkout 96f488dd3fb08e636cb6a01818891ae2044184be
 
 cargo build --release
 
-sudo cp target/release/alacritty "$BINDIR/alacritty"
+cp target/release/alacritty "${BINDIR}/alacritty"
 sudo tic -xe alacritty,alacritty-direct extra/alacritty.info
 sudo cp extra/logo/alacritty-term.svg /usr/share/pixmaps/Alacritty.svg
 sudo desktop-file-install extra/linux/Alacritty.desktop

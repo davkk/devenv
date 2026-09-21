@@ -9,18 +9,19 @@ export SAVEHIST=$HISTSIZE
 
 export CARGO_HOME="$HOME/.local/cargo"
 export RUSTUP_HOME="$HOME/.local/rustup"
-export OPAM_SWITCH_PREFIX="$HOME/.local/opam"
+export OPAM_SWITCH_PREFIX="$HOME/.local/opt/opam"
 export NPM_CONFIG_PREFIX="$HOME/.local/npm"
-export GOPATH="$HOME/.local/golang"
+export GOPATH="$HOME/.local/share/go"
 export GOBIN="$GOPATH/bin"
 
-export PATH=$PATH:$HOME/.local/bin
-export PATH=$PATH:$HOME/.local/go/bin
-export PATH=$PATH:$HOME/.local/rust/bin
-export PATH=$PATH:$HOME/.local/luarocks/bin
-export PATH=$PATH:$HOME/.local/opam/bin
-export PATH=$PATH:$CARGO_HOME/bin
-export PATH=$PATH:$NPM_CONFIG_PREFIX/bin
+export PATH="$PATH:$HOME/.local/bin"
+export PATH="$PATH:$HOME/.local/opt/go/bin"
+export PATH="$PATH:$HOME/.local/opt/rust/bin"
+export PATH="$PATH:$HOME/.local/opt/luarocks/bin"
+export PATH="$PATH:$OPAM_SWITCH_PREFIX/bin"
+export PATH="$PATH:$CARGO_HOME/bin"
+export PATH="$PATH:$NPM_CONFIG_PREFIX/bin"
+export PATH="$PATH:$GOBIN"
 
 export EDITOR=$(which nvim 2>/dev/null || echo vim)
 export SUDO_EDITOR=$EDITOR
@@ -28,6 +29,7 @@ export SUDO_EDITOR=$EDITOR
 export FZF_DEFAULT_OPTS="--reverse"
 
 alias l='ls -lah --color=auto --group-directories-first'
+alias gbtm='spd-say "get back to me"'
 
 sd() {
     local dirs=(~/ ~/code/)

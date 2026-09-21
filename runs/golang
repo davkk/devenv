@@ -10,7 +10,7 @@ ver="1.26.1"
 base="go"
 asset="go${ver}.linux-amd64.tar.gz"
 
-cd $TMPDIR
-curl -fsSL -O https://go.dev/dl/${asset}
-tar -xf ${asset}
-mv ${base} ~/.local/go
+cd "${TMPDIR}"
+curl -fsSL -O "https://go.dev/dl/${asset}"
+tar -xf "${asset}"
+mv "${base}" "${OPTDIR}/go"
