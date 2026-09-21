@@ -39,10 +39,6 @@ vim.keymap.set("n", "<leader>u", function()
     vim.cmd.Undotree()
 end)
 
-vim.api.nvim_create_autocmd("FileType", {
-    group = vim.api.nvim_create_group("user.treesitter", { clear = true }),
-    callback = function() pcall(vim.treesitter.start) end,
-})
 vim.api.nvim_set_hl(0, "Normal", { bg = "none", ctermbg = "none", update = true })
 require("vim._core.ui2").enable()
 
@@ -56,7 +52,7 @@ vim.g.quickfill = {
     url = "http://localhost:8012",
     model = "sweep-next-edit-1.5b.q8_0.v2",
     chunk_lines = 32,
-    max_extra_chunks = 4,
+    max_extra_chunks = 6,
     n_suffix = 32,
     n_prefix = 16,
     max_lsp_completion_items = 10,
