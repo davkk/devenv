@@ -1,7 +1,8 @@
 ---
 name: qf
 description: >
-  vim quickfix format spec + writer for /tmp/qf
+  vim quickfix format spec + writer for /tmp/qf. Standalone skill for
+  producing structured bug/gap/issue lists in vim errorformat.
 ---
 
 <format>
@@ -28,13 +29,8 @@ Examples:
   task.md:1:1: note: no outstanding items - all requested work appears complete
 </format>
 
-<sentinel>
-Only when every part of the prompt is fully addressed, write exactly:
-  task.md:1:1: note: no outstanding items - all requested work appears complete
-</sentinel>
-
 <write_file>
-Use bash_tool to write the file:
+Use bash to write the file:
 
   cat > /tmp/qf << 'QFEOF'
   app/auth.py:1:1: warning: JWT middleware missing - all routes unprotected
