@@ -1,3 +1,5 @@
+vim.cmd.detach { bang = true }
+
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
@@ -37,6 +39,27 @@ end
 vim.keymap.set("n", "<leader>u", function()
     vim.cmd.packadd "nvim.undotree"
     vim.cmd.Undotree()
+end)
+
+vim.keymap.set("n", "<leader>gd", function()
+    local f = vim.api.nvim_buf_get_name(0)
+    if not f or f == "" then return end
+    vim.ui.input({ prompt = "Diff: ", default = "HEAD" }, function(rev)
+        if not rev or rev == "" then return end
+        local r = vim.system(
+            { "git", "show", rev .. ":./" .. vim.fs.basename(f) },
+            { text = true, cwd = vim.fs.dirname(f) }
+        )
+        r = r:wait()
+        if r.code ~= 0 then return vim.notify(r.stderr, vim.log.levels.ERROR) end
+        vim.cmd.diffthis()
+        vim.cmd "leftabove vnew"
+        vim.bo.buftype, vim.bo.bufhidden = "nofile", "wipe"
+        vim.bo.filetype = vim.filetype.match { filename = f } or ""
+        vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(r.stdout, "\n", { trimempty = true }))
+        vim.cmd.diffthis()
+        vim.cmd.wincmd "p"
+    end)
 end)
 
 vim.api.nvim_set_hl(0, "Normal", { bg = "none", ctermbg = "none", update = true })
