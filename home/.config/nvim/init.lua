@@ -40,11 +40,18 @@ vim.keymap.set("n", "<leader>u", function()
     vim.cmd.packadd "nvim.undotree"
     vim.cmd.Undotree()
 end)
-
+vim.keymap.set("n", "<leader>t", function()
+    vim.system({ "tagsync" }, { text = true }, function(obj)
+        if obj.code ~= 0 then
+            return vim.schedule(function() vim.notify("tagsync: " .. obj.stderr, vim.log.levels.ERROR) end)
+        end
+        vim.schedule(function() vim.notify("tagsync: done!", vim.log.levels.INFO) end)
+    end)
+end)
 vim.keymap.set("n", "<leader>gd", function()
     local f = vim.api.nvim_buf_get_name(0)
     if not f or f == "" then return end
-    vim.ui.input({ prompt = "Diff: ", default = "HEAD" }, function(rev)
+    vim.ui.input({ prompt = "diff: ", default = "HEAD" }, function(rev)
         if not rev or rev == "" then return end
         local r = vim.system(
             { "git", "show", rev .. ":./" .. vim.fs.basename(f) },
@@ -82,6 +89,6 @@ vim.g.quickfill = {
     fresh_on_trigger_char = false,
 }
 vim.keymap.set("i", "<C-q>", "<Plug>(quickfill-accept)")
-vim.keymap.set("i", "<C-S-q>", "<Plug>(quickfill-accept-replace)")
+vim.keymap.set("i", "<C-a>", "<Plug>(quickfill-accept-replace)")
 vim.keymap.set("i", "<C-l>", "<Plug>(quickfill-accept-word)")
 vim.keymap.set("i", "<C-space>", "<Plug>(quickfill-trigger)")

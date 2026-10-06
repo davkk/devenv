@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export LC_ALL=C
+
+tags="$PWD/tags"
+root=$(realpath "${1:-.}")
+
+CTAGS_FLAGS=(
+    --exclude=*.json \
+    --exclude=*.html \
+    --exclude=*.css \
+    --exclude=*.md \
+    --exclude=*.rst \
+    --exclude=*.min.js \
+    --kinds-JavaScript=-p
+)
+
+exec 9<"$PWD"
+flock 9
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+find_files() {
+    find "$root" -maxdepth 8 -type f \
+        -not -name tags \
+        -not -path '*/.git/*' \
+        -not -path '*/build/*' \
+        -not -path '*/target/*' \
+        -not -path '*/static/*' \
+        -not -path '*/__pycache__/*' \
+        -not -path '*/nbextensions/*' \
+        "$@"
+}
+
+if [[ -f $tags ]]; then
+    awk -F '\t' -v p="$root/" \
+        '$0 !~ /^!/ && index($2, p) == 1 { print $2 }' \
+        "$tags" > "$tmp/known"
+else
+    : > "$tmp/known"
+fi
+
+if [[ -s $tmp/known ]]; then
+    find_files -newer "$tags" > "$tmp/files"
+    while IFS= read -r file; do
+        [[ -f $file ]] || printf '%s\n' "$file"
+    done < "$tmp/known" > "$tmp/gone"
+else
+    find_files > "$tmp/files"
+    : > "$tmp/gone"
+fi
+
+[[ -s $tmp/files || -s $tmp/gone ]] || exit 0
+
+if [[ -s $tmp/files ]]; then
+    parallel -j "$(nproc)" -n 50 \
+        ctags "${CTAGS_FLAGS[@]}" --sort=no -f - {} < "$tmp/files" > "$tmp/new"
+else
+    : > "$tmp/new"
+fi
+
+if [[ -f $tags ]]; then
+    awk -F '\t' -v tags="$tags" '
+        FILENAME != tags {
+            remove[$0] = 1
+            next
+        }
+        /^!/ || !($2 in remove)
+    ' "$tmp/files" "$tmp/gone" "$tags" > "$tmp/old"
+else
+    : > "$tmp/old"
+fi
+
+sort -u "$tmp/new" -o "$tmp/new"
+sort -mu "$tmp/old" "$tmp/new" > "$tags"
