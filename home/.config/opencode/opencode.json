@@ -11,14 +11,14 @@
                 "baseURL": "http://localhost:8012"
             },
             "models": {
-                "Qwen3.6-35B-A3B-UD-Q4_K_S": {
-                    "name": "Qwen3.6-35B-A3B-UD-Q4_K_S"
+                "Qwen3.5-9B-Q4_0": {
+                    "name": "Qwen3.5-9B"
                 },
-                "Qwen3.6-35B-A3B-UD-IQ1_M": {
-                    "name": "Qwen3.6-35B-A3B-UD-IQ1_M"
+                "Tiel-Coder-35B-A3B-MTP-UD-IQ3_XXS": {
+                    "name": "Tiel-Coder"
                 },
                 "Qwen3.8-27B-UD-Q2_K_XL": {
-                    "name": "Qwen3.8-27B-UD-Q2_K_XL"
+                    "name": "Qwen3.8-27B"
                 }
             }
         }
