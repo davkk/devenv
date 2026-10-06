@@ -1,0 +1,39 @@
+--langdef=zig
+--map-zig=+.zig
+
+--kinddef-zig=f,function,functions
+--kinddef-zig=m,method,methods
+--kinddef-zig=t,type,types
+--kinddef-zig=v,variable,variables
+--kinddef-zig=c,constant,constants
+--kinddef-zig=e,enumerator,enum values
+--kinddef-zig=T,test,tests
+
+# skip imports [Inference]
+--regex-zig=/^(pub[[:space:]]+)?const[[:space:]]+[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*=[[:space:]]*@import\(//{exclusive}
+
+# top-level functions
+--regex-zig=/^(pub[[:space:]]+)?((export|extern|inline|noinline)[[:space:]]+)*(extern[[:space:]]+"[^"]*"[[:space:]]+)?fn[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)/\5/f/{exclusive}
+
+# types (struct/enum/union/opaque)
+--regex-zig=/^(pub[[:space:]]+)?const[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=[[:space:]]*((packed|extern)[[:space:]]+)?(struct|enum|union|opaque)\b/\2/t/{exclusive}{scope=push}
+
+# error sets
+--regex-zig=/^(pub[[:space:]]+)?const[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=[[:space:]]*error[[:space:]]*\{/\2/t/{exclusive}{scope=push}
+
+# scope end
+--regex-zig=/^\};?[[:space:]]*$///{exclusive}{scope=pop}{placeholder}
+
+# methods (indented fn)
+--regex-zig=/^[[:space:]]+(pub[[:space:]]+)?((inline|noinline)[[:space:]]+)?fn[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)/\4/m/{exclusive}{scope=ref}
+
+# enum values
+--regex-zig=/^[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*(=[^,]*)?,[[:space:]]*(\/\/.*)?$/\1/e/{scope=ref}
+
+# top-level constants / variables
+--regex-zig=/^(pub[[:space:]]+)?(export[[:space:]]+)?const[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)/\3/c/
+--regex-zig=/^(pub[[:space:]]+)?(export[[:space:]]+)?(threadlocal[[:space:]]+)?var[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)/\4/v/
+
+# tests
+--regex-zig=/^test[[:space:]]+"([^"]+)"/\1/T/
+--regex-zig=/^test[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*)/\1/T/

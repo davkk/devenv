@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+choice=$(for s in ${XDG_RUNTIME_DIR:-/tmp}/nvim.*.0; do
+    [ -S "$s" ] || continue
+    cwd=$(nvim --headless --server "$s" --remote-expr 'getcwd()' 2>/dev/null) || continue
+    buf=$(nvim --headless --server "$s" --remote-expr 'bufname("%")' 2>/dev/null)
+    echo "$s $(basename "$cwd"): $(basename "$buf")"
+done | fzf)
+
+[ -z "$choice" ] && exit
+sock=${choice%% *}
+
+if [ -n "$NVIM" ]; then
+    nvim --headless --server "$NVIM" --remote-expr "execute('connect $sock')"
+else
+    nvim --server "$sock" --remote-ui
+fi
