@@ -1,5 +1,6 @@
 ---
 name: audit
+hidden: true
 description: >
   User-invoked-only read-only audit that produces a quickfix list of what is
   STILL MISSING or INCOMPLETE after a set of changes. The model must NEVER

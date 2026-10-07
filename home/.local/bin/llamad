@@ -5,23 +5,19 @@ export GGML_VK_PREFER_HOST_MEMORY=1
 host=${1:-localhost}
 port=${2:-8012}
 
-# A transient unit with a fixed name stays loaded after stop/failure
-# (especially after oom-kill), so a plain systemd-run fails with
-# "already loaded or has a fragment file".
-# Reuse the loaded unit when it exists; only systemd-run when unknown.
-if systemctl --user cat llama-server &>/dev/null; then
-    if systemctl --user is-active --quiet llama-server; then
-        echo "llama-server already running"
+if systemctl --user cat llamad &>/dev/null; then
+    if systemctl --user is-active --quiet llamad; then
+        echo "llamad already running"
         exit 0
     fi
-    systemctl --user reset-failed llama-server 2>/dev/null || true
-    exec systemctl --user restart llama-server
+    systemctl --user reset-failed llamad 2>/dev/null || true
+    exec systemctl --user restart llamad
 fi
 
 exec systemd-run \
     --user \
     --collect \
-    --unit=llama-server \
+    --unit=llamad \
     -p MemoryMax=25G \
     -p StandardOutput=journal \
     -p StandardError=journal \

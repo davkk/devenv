@@ -1,5 +1,6 @@
 ---
 name: simple-english
+hidden: true
 description: |
   Write or rewrite text in plain, layman-readable English in the spirit of
   ASD-STE100 Simplified Technical English: short sentences, active voice,

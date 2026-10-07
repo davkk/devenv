@@ -1,5 +1,6 @@
 ---
 name: derive-to-optimal
+hidden: true
 description: >
   Derive algorithm solutions from brute force to straightforward to optimal.
   Use when explaining LeetCode, algorithms, data structures, complexity
