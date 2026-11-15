@@ -61,6 +61,7 @@ Do not use `input` to start a normal task. Use `task`, or the completion protoco
 
 ## Rules
 
+- Keep at most two workers alive at once. Run `nvimctl list` to count them, and stop a finished worker before you spawn a third.
 - Make all decisions yourself. Give exact instructions. Do not ask a worker to judge, review, choose, or rank.
 - One task per worker at a time. `task` enforces this; do not bypass it with `input`.
 - Reuse a finished worker as-is when the next task builds on its context. For an unrelated task, stop it and spawn a new one. There is no reset command.
