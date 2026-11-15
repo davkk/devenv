@@ -7,26 +7,23 @@ disable-model-invocation: true
 <format>
 Each line must follow this exact format:
 
-  {file}:{line}:{col}: {severity}: {description}
+  {file}:{line}:{col}: {description}
 
 Fields:
-- file        - most specific filename; logical target name if file doesn't exist yet; never "."
-- line        - best-known line number; use 1 if unknown
-- col         - best-known column; use 1 if not applicable
-- severity    - one of: error, note, warning
-- description - be descriptive about the entry
-
-Matches vim errorformat:
-  %E%f:%l:%c: error: %m
-  %I%f:%l:%c: note: %m
-  %W%f:%l:%c: warning: %m
+- file         - most specific filename; logical target name if file doesn't exist yet; never "."
+- line         - best-known line number; use 1 if unknown
+- col          - best-known column; use 1 if not applicable
+- description  - begins with the severity word (error, warning, note), then the entry
 
 Examples:
-  app/auth.py:1:1: error: JWT middleware missing - all routes unprotected
+  app/auth.py:1:1: warning: JWT middleware missing - all routes unprotected
   README.md:87:1: note: add config reference table for all env vars
-  main.go:42:12: warning: handle error return from os.Open
-  task.md:1:1: note: no outstanding items - all requested work appears complete
+  main.go:42:12: error: handle error return from os.Open
 </format>
+
+<path>
+  /tmp/qf
+</path>
 
 <write_file>
 Use bash to write the file:
@@ -35,3 +32,7 @@ Use bash to write the file:
   app/auth.py:1:1: warning: JWT middleware missing - all routes unprotected
   QFEOF
 </write_file>
+
+<load>
+  cfile /tmp/qf
+</load>
