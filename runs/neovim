@@ -2,21 +2,28 @@
 
 set -euo pipefail
 
-if [[ ! -d "$CODEDIR/neovim/.git" ]]; then
-    git clone https://github.com/neovim/neovim "$CODEDIR/neovim"
+nvim_dir="/usr/local/opt/nvim"
+asset="nvim-linux-x86_64.tar.gz"
+plugin_dir="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/site/pack/local/start"
+
+# Nightly is a rolling release: NVIM_UPDATE=1 reinstalls it.
+if ! command -v nvim &>/dev/null || [[ "${NVIM_UPDATE:-0}" == "1" ]]; then
+    cd "${TMPDIR}"
+    curl -fsSL -O "https://github.com/neovim/neovim/releases/download/nightly/${asset}"
+    tar -xf "${asset}"
+
+    sudo mkdir -p /usr/local/opt
+    sudo rm -rf "$nvim_dir"
+    sudo mv "${asset%.tar.gz}" "$nvim_dir"
+    sudo ln -sf "$nvim_dir/bin/nvim" /usr/local/bin/nvim
+
+    nvim --version | head -1
 fi
 
-cd "$CODEDIR/neovim"
-
-git pull
-make distclean
-make CMAKE_BUILD_TYPE=Release -j
-sudo chown -R "$(id -u):$(id -g)" "$CODEDIR/neovim"
-sudo make install
-
-if [[ ! -d "$CODEDIR/quickfill.nvim" ]]; then
-    PLUGIN_DIR="${XDG_DATA_HOME}/nvim/site/pack/local/start"
-    mkdir -p "$PLUGIN_DIR"
-    git clone https://github.com/davkk/quickfill.nvim "$CODEDIR/quickfill.nvim"
-    ln -fs "$CODEDIR/quickfill.nvim" "$PLUGIN_DIR"
+if [[ ! -d "$plugin_dir/quickfill.nvim" ]]; then
+    if [[ ! -d "$CODEDIR/quickfill.nvim" ]]; then
+        git clone https://github.com/davkk/quickfill.nvim "$CODEDIR/quickfill.nvim"
+    fi
+    mkdir -p "$plugin_dir"
+    ln -sfn "$CODEDIR/quickfill.nvim" "$plugin_dir/quickfill.nvim"
 fi

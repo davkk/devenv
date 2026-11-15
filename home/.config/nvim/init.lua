@@ -34,9 +34,6 @@ end
 vim.o.findfunc = "v:lua.FindFunc"
 
 vim.keymap.set("n", "-", "<Plug>(nvim-dir-up)")
-for i = 1, 5 do
-    vim.keymap.set("n", "<M-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
-end
 vim.keymap.set("n", "<leader>u", function()
     vim.cmd.packadd "nvim.undotree"
     vim.cmd.Undotree()
