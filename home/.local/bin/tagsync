@@ -26,6 +26,8 @@ find_files() {
         -not -name tags \
         -not -path '*/.git/*' \
         -not -path '*/build/*' \
+        -not -path '*/node_modules/*' \
+        -not -path '*/.venv/*' \
         -not -path '*/target/*' \
         -not -path '*/static/*' \
         -not -path '*/__pycache__/*' \
@@ -54,7 +56,9 @@ fi
 [[ -s $tmp/files || -s $tmp/gone ]] || exit 0
 
 if [[ -s $tmp/files ]]; then
-    parallel -j "$(nproc)" -n 50 \
+    threads=$(( $(nproc) - 3 ))
+    ((threads > 0)) || threads=1
+    parallel -j "$threads" -n 50 \
         ctags "${CTAGS_FLAGS[@]}" --sort=no -f - {} < "$tmp/files" > "$tmp/new"
 else
     : > "$tmp/new"
