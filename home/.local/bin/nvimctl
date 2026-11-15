@@ -106,6 +106,9 @@ When this is finished, end with a short report of what you did, then run exactly
 "
     mkdir -p "$DONE" || die "cannot write to $DONE"
     : > "$DONE/$BUF.busy" || die "cannot write to $DONE"
+    # A TUI drops input sent before it draws its first frame, so wait for the
+    # frame before typing. Otherwise the task vanishes and wait times out.
+    case $(rpc read "$BUF" 2>/dev/null) in *[![:space:]]*) ;; *) sleep 1 ;; esac
     out=$(rpc send "$BUF" "$*$step"$'\r') || { rm -f "$DONE/$BUF.busy"; die "task failed"; }
     if [ -n "$out" ]; then
         rm -f "$DONE/$BUF.busy"
