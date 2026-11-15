@@ -1,0 +1,17 @@
+background = 000000
+background-opacity = 0.9
+window-theme = ghostty
+window-width = 140
+window-height = 50
+
+font-family = Iosevka
+
+gtk-tabs-location = bottom
+gtk-wide-tabs = false
+
+shell-integration-features = sudo, no-cursor, title, ssh-terminfo
+confirm-close-surface = always
+
+cursor-style-blink = false
+
+mouse-hide-while-typing = true
