@@ -1,8 +1,7 @@
 ---
 name: qf
-description: >
-  vim quickfix format spec + writer for /tmp/qf. Standalone skill for
-  producing structured bug/gap/issue lists in vim errorformat.
+description: Use when user wants your output as a vim quickfix list.
+disable-model-invocation: true
 ---
 
 <format>
