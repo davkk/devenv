@@ -33,6 +33,7 @@ function FindFunc(cmdarg)
 end
 vim.o.findfunc = "v:lua.FindFunc"
 
+vim.keymap.set("n", "-", "<Plug>(nvim-dir-up)")
 for i = 1, 5 do
     vim.keymap.set("n", "<M-" .. i .. ">", "<cmd>" .. i .. "argu<cr>", { silent = true })
 end
@@ -70,6 +71,9 @@ vim.keymap.set("n", "<leader>gd", function()
 end)
 
 vim.api.nvim_set_hl(0, "Normal", { bg = "none", ctermbg = "none", update = true })
+vim.api.nvim_set_hl(0, "DiffAdd", { fg = "none", ctermfg = "none", update = true })
+vim.api.nvim_set_hl(0, "DiffText", { fg = "none", ctermfg = "none", update = true })
+vim.api.nvim_set_hl(0, "DiffChange", { fg = "none", ctermfg = "none", update = true })
 require("vim._core.ui2").enable()
 
 vim.pack.add {
@@ -77,6 +81,7 @@ vim.pack.add {
     "https://github.com/nvim-treesitter/nvim-treesitter-context",
 }
 require("nvim-treesitter").install { "lua", "cpp", "python", "go", "zig", "ocaml", "bash" }
+vim.api.nvim_create_autocmd("FileType", { callback = function() pcall(vim.treesitter.start) end })
 
 vim.g.quickfill = {
     url = "http://localhost:8012",
