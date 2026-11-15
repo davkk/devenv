@@ -4,6 +4,13 @@
     "permission": {
         "*": "allow"
     },
+    "experimental": {
+        "subagent_depth": 0
+    },
+    "agents": {
+        "general": { "disabled": true },
+        "explore": { "disabled": true }
+    },
     "provider": {
         "llama.cpp": {
             "npm": "@ai-sdk/openai-compatible",
