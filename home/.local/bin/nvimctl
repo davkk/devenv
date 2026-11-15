@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+# nvimctl - drive a command in an nvim split.
+#
+# A split stays open after the command exits. You send input, read the screen,
+# and close it when done. nvim is found through $NVIM.
+
+set -u
+
+DONE=${XDG_RUNTIME_DIR:-/tmp}/nvimctl
+# Resolve through the ~/.local/bin symlink so the module is found in the repo.
+MODULE=$(dirname "$(readlink -f "$(command -v "$0" 2>/dev/null || echo "$0")")")/../lib/nvimctl/nvimctl.lua
+
+# Runs inside nvim: decode the args, load the module, dispatch.
+RPC='(function() local a = vim.tbl_map(vim.base64.decode, _A) local p = table.remove(a, 1) local f, err = loadfile(p) if not f then return "nvimctl: " .. tostring(err) end return f().cli(a) end)()'
+
+die() { echo "nvimctl: $*" >&2; exit 1; }
+
+usage() {
+    cat <<'EOF'
+usage: nvimctl COMMAND [ARGS]
+
+Drive a command in an nvim split. Commands talk to nvim through $NVIM.
+
+  spawn CMD...        split, run CMD, print the new buffer number
+  input BUF TEXT...   send raw bytes; no newline is added
+  task BUF TEXT...    send one worker turn; TEXT gets the "run nvimctl done BUF" step
+  read BUF            print what the split shows now
+  wait BUF [SECS]     print done, exit N, or timeout (default 300s, checked every 3s)
+  stop BUF            close the split and kill the process
+  list                print each split: buffer, command, live or dead
+  done BUF            a worker calls this to end its turn
+
+input expands backslash escapes: \r, \n, \t, \e, \xHH, \0NNN.
+Use \\ for a literal backslash.
+
+Env:
+  NVIM=<socket>       nvim instance to drive (default: inherited from the split)
+  NVIMCTL_WIN=<win>   window for spawn to split (default: the current window)
+EOF
+}
+
+cmd=${1:-}
+case $cmd in "" | -h | --help | help)
+    usage
+    exit 0
+    ;;
+esac
+shift
+
+# The worker side: no nvim needed, the marker file is the whole signal.
+if [ "$cmd" = done ]; then
+    buf=${1:?usage: nvimctl done BUF}
+    case $buf in *[!0-9]*) die "bad buffer id '$buf'" ;; esac
+    mkdir -p "$DONE" || die "cannot write to $DONE"
+    : > "$DONE/$buf.done" || die "cannot write to $DONE"
+    rm -f "$DONE/$buf.busy"
+    exit 0
+fi
+
+SOCK=${NVIM:-}
+[ -n "$SOCK" ] || die "NVIM is unset; run this inside nvim or export NVIM=<socket>"
+[ -S "$SOCK" ] || die "nothing is listening on $SOCK"
+
+# Each argument is base64 so no quoting, newline or dash can break the call.
+rpc() {
+    local args="'$(printf %s "$MODULE" | base64 -w0)'" arg
+    for arg in "$@"; do args+=",'$(printf %s "$arg" | base64 -w0)'"; done
+    nvim --headless --server "$SOCK" --remote-expr "luaeval('$RPC', [$args])" </dev/null
+}
+
+need_buf() {
+    case ${1:-} in
+    "" | *[!0-9]*) die "usage: nvimctl $cmd BUF${2:-}" ;;
+    esac
+    BUF=$1
+}
+
+check() {
+    case $1 in nvimctl:*) die "${1#nvimctl: }" ;; esac
+}
+
+case $cmd in
+spawn)
+    [ $# -gt 0 ] || die "usage: nvimctl spawn CMD..."
+    out=$(rpc spawn "$PWD" "${NVIMCTL_WIN:-0}" "$@") || die "spawn failed"
+    case $out in "" | *[!0-9]*) die "${out#nvimctl: }" ;; esac
+    echo "$out"
+    ;;
+task)
+    need_buf "${1:-}" " TEXT..."
+    shift
+    [ $# -gt 0 ] || die "usage: nvimctl task BUF TEXT..."
+    [ "$(rpc alive "$BUF" 2>/dev/null)" = 1 ] || die "buffer $BUF is not a live terminal"
+    if [ -f "$DONE/$BUF.busy" ]; then
+        die "worker $BUF is busy; run wait first"
+    fi
+    if [ -f "$DONE/$BUF.done" ]; then
+        die "worker $BUF has an unread result; run wait first"
+    fi
+    step="
+
+You are a worker: do this task, ask nothing, run no memo commands.
+
+When this is finished, end with a short report of what you did, then run exactly this in your shell and stop:
+  nvimctl done $BUF
+"
+    mkdir -p "$DONE" || die "cannot write to $DONE"
+    : > "$DONE/$BUF.busy" || die "cannot write to $DONE"
+    out=$(rpc send "$BUF" "$*$step"$'\r') || { rm -f "$DONE/$BUF.busy"; die "task failed"; }
+    if [ -n "$out" ]; then
+        rm -f "$DONE/$BUF.busy"
+        die "${out#nvimctl: }"
+    fi
+    ;;
+input)
+    need_buf "${1:-}" " TEXT..."
+    shift
+    [ $# -gt 0 ] || die "usage: nvimctl input BUF TEXT..."
+    text=$(printf '%b' "$*")
+    out=$(rpc send "$BUF" "$text") || die "input failed"
+    [ -z "$out" ] || die "${out#nvimctl: }"
+    ;;
+wait)
+    need_buf "${1:-}" " [SECS]"
+    secs=${2:-300}
+    case $secs in *[!0-9]*) die "bad seconds '$secs'" ;; esac
+    for ((i = 0; i < secs; i += 3)); do
+        if [ -f "$DONE/$BUF.done" ]; then
+            rm -f "$DONE/$BUF.done" "$DONE/$BUF.busy" "$DONE/$BUF.exit"
+            echo done
+            exit 0
+        fi
+        if [ -f "$DONE/$BUF.exit" ]; then
+            code=$(cat "$DONE/$BUF.exit" 2>/dev/null)
+            rm -f "$DONE/$BUF.exit" "$DONE/$BUF.busy" "$DONE/$BUF.done"
+            echo "exit ${code:-1}"
+            exit 1
+        fi
+        if [ "$(rpc alive "$BUF" 2>/dev/null)" = 0 ]; then
+            # Give on_exit a moment to write the code.
+            sleep 0.2
+            if [ -f "$DONE/$BUF.exit" ]; then
+                code=$(cat "$DONE/$BUF.exit" 2>/dev/null)
+                rm -f "$DONE/$BUF.exit" "$DONE/$BUF.busy" "$DONE/$BUF.done"
+                echo "exit ${code:-1}"
+            else
+                rm -f "$DONE/$BUF.busy" "$DONE/$BUF.done"
+                echo "exit 1"
+            fi
+            exit 1
+        fi
+        sleep 3
+    done
+    echo timeout
+    exit 1
+    ;;
+read)
+    need_buf "${1:-}"
+    out=$(rpc read "$BUF") || die "read failed"
+    check "$out"
+    printf '%s\n' "$out"
+    ;;
+stop)
+    need_buf "${1:-}"
+    out=$(rpc stop "$BUF") || die "stop failed"
+    check "$out"
+    printf '%s\n' "$out"
+    ;;
+list)
+    out=$(rpc list) || die "list failed"
+    check "$out"
+    printf '%s\n' "$out"
+    ;;
+*)
+    die "unknown command '$cmd' (see nvimctl --help)"
+    ;;
+esac
