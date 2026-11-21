@@ -10,6 +10,16 @@ ver="1.26.1"
 base="go"
 asset="go${ver}.linux-amd64.tar.gz"
 
+case "$OS" in
+    macos)
+        case "$ARCH" in
+            arm64) goarch="arm64" ;;
+            x86_64) goarch="amd64" ;;
+        esac
+        asset="go${ver}.darwin-${goarch}.tar.gz"
+        ;;
+esac
+
 cd "${TMPDIR}"
 curl -fsSL -O "https://go.dev/dl/${asset}"
 tar -xf "${asset}"

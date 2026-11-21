@@ -9,4 +9,5 @@ fi
 case "$OS" in
     fedora) sudo dnf install -y lua5.1 luarocks libstdc++-static ;;
     ubuntu) sudo apt-get install -y lua5.1 luarocks libstdc++-12-dev ;;
+    macos) brew install lua luarocks ;;
 esac

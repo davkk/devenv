@@ -44,6 +44,7 @@ log() {
 }
 
 export OS=$(detect_os)
+export ARCH=$(detect_arch)
 
 if [[ "$OS" == "unknown" ]]; then
     echo "Warning: unknown OS"

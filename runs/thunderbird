@@ -5,4 +5,5 @@ set -euo pipefail
 case "$OS" in
     fedora) sudo dnf install -y thunderbird ;;
     ubuntu) sudo apt-get install -y thunderbird ;;
+    macos) brew install --cask thunderbird ;;
 esac

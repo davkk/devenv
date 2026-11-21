@@ -2,9 +2,20 @@
 
 set -euo pipefail
 
-nvim_dir="/usr/local/opt/nvim"
+nvim_dir="${OPTDIR}/nvim"
+nvim_bin="${BINDIR}/nvim"
 asset="nvim-linux-x86_64.tar.gz"
 plugin_dir="${XDG_DATA_HOME:-$HOME/.local/share}/nvim/site/pack/local/start"
+
+case "$OS" in
+    macos)
+        case "$ARCH" in
+            arm64) nvarch="arm64" ;;
+            x86_64) nvarch="x86_64" ;;
+        esac
+        asset="nvim-macos-${nvarch}.tar.gz"
+        ;;
+esac
 
 # Nightly is a rolling release: NVIM_UPDATE=1 reinstalls it.
 if ! command -v nvim &>/dev/null || [[ "${NVIM_UPDATE:-0}" == "1" ]]; then
@@ -12,10 +23,9 @@ if ! command -v nvim &>/dev/null || [[ "${NVIM_UPDATE:-0}" == "1" ]]; then
     curl -fsSL -O "https://github.com/neovim/neovim/releases/download/nightly/${asset}"
     tar -xf "${asset}"
 
-    sudo mkdir -p /usr/local/opt
-    sudo rm -rf "$nvim_dir"
-    sudo mv "${asset%.tar.gz}" "$nvim_dir"
-    sudo ln -sf "$nvim_dir/bin/nvim" /usr/local/bin/nvim
+    rm -rf "$nvim_dir"
+    mv "${asset%.tar.gz}" "$nvim_dir"
+    ln -sfn "$nvim_dir/bin/nvim" "$nvim_bin"
 
     nvim --version | head -1
 fi

@@ -10,6 +10,17 @@ ver="v24.20.0"
 base="node-${ver}-linux-x64"
 asset="${base}.tar.xz"
 
+case "$OS" in
+    macos)
+        case "$ARCH" in
+            arm64) nodearch="arm64" ;;
+            x86_64) nodearch="x64" ;;
+        esac
+        base="node-${ver}-darwin-${nodearch}"
+        asset="${base}.tar.xz"
+        ;;
+esac
+
 cd "${TMPDIR}"
 curl -fsSL -O "https://nodejs.org/dist/${ver}/${asset}"
 tar -xf "${asset}"

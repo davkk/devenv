@@ -10,6 +10,17 @@ ver="0.17.0"
 base="zig-x86_64-linux-${ver}"
 asset="${base}.tar.xz"
 
+case "$OS" in
+    macos)
+        case "$ARCH" in
+            arm64) zigarch="aarch64" ;;
+            x86_64) zigarch="x86_64" ;;
+        esac
+        base="zig-${zigarch}-macos-${ver}"
+        asset="${base}.tar.xz"
+        ;;
+esac
+
 cd "${TMPDIR}"
 curl -fsSL -O "https://ziglang.org/download/${ver}/${asset}"
 tar -xf "${asset}"

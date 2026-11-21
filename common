@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 detect_os() {
-    if [[ -f /etc/os-release ]]; then
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        echo "macos"
+    elif [[ -f /etc/os-release ]]; then
         . /etc/os-release
         case "$ID" in
             fedora) echo "fedora" ;;
@@ -11,6 +13,16 @@ detect_os() {
     else
         echo "unknown"
     fi
+}
+
+detect_arch() {
+    local machine
+    machine="$(uname -m)"
+    case "$machine" in
+        arm64|aarch64) echo "arm64" ;;
+        x86_64|amd64) echo "x86_64" ;;
+        *) echo "$machine" ;;
+    esac
 }
 
 load_config() {

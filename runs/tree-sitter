@@ -10,6 +10,17 @@ ver="v0.24.7"
 base="tree-sitter-linux-x64"
 asset="${base}.gz"
 
+case "$OS" in
+    macos)
+        case "$ARCH" in
+            arm64) tsarch="arm64" ;;
+            x86_64) tsarch="x64" ;;
+        esac
+        base="tree-sitter-macos-${tsarch}"
+        asset="${base}.gz"
+        ;;
+esac
+
 cd "${TMPDIR}"
 curl -fsSL -O https://github.com/tree-sitter/tree-sitter/releases/download/${ver}/${asset}
 gzip -d "${asset}"

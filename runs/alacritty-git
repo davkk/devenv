@@ -6,6 +6,13 @@ if command -v alacritty &>/dev/null; then
     exit 0
 fi
 
+case "$OS" in
+    macos)
+        brew install --cask alacritty
+        exit 0
+        ;;
+esac
+
 if ! command -v cargo &>/dev/null; then
     echo "alacritty build requires cargo" >&2
     exit 0

@@ -10,6 +10,17 @@ ver="v2.4.1"
 base="stylua-linux-x86_64"
 asset="${base}.zip"
 
+case "$OS" in
+    macos)
+        case "$ARCH" in
+            arm64) styluaarch="aarch64" ;;
+            x86_64) styluaarch="x86_64" ;;
+        esac
+        base="stylua-macos-${styluaarch}"
+        asset="${base}.zip"
+        ;;
+esac
+
 cd "${TMPDIR}"
 curl -fsSL -O "https://github.com/JohnnyMorganz/StyLua/releases/download/${ver}/${asset}"
 unzip -j "${asset}" -d "${BINDIR}" stylua

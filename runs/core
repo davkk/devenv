@@ -17,4 +17,7 @@ case "$OS" in
             desktop-file-utils parallel tmux jq \
             stow btop unison
         ;;
+    macos)
+        brew install stow gcc llvm ninja git curl wget moreutils make cmake unzip parallel tmux jq stow btop unison
+        ;;
 esac
