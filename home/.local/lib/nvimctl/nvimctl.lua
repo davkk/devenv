@@ -40,13 +40,24 @@ local function unfocus()
     pcall(vim.api.nvim_win_set_cursor, win, { vim.api.nvim_buf_line_count(buf), 0 })
 end
 
-local function open_split(argv, cwd)
+local function open_split(argv, cwd, anchor)
     local origin = vim.api.nvim_get_current_win()
     vim.cmd("botright vnew")
     local buf = vim.api.nvim_get_current_buf()
     vim.b[buf].nvimctl = vim.fn.fnamemodify(argv[1] or "worker", ":t")
     clear_state(buf)
-    local job = vim.fn.jobstart(argv, {
+    -- Children inherit the anchor so their own spawns stay in this window
+    -- even after the user switches tabs. An explicit NVIMCTL_WIN in a child
+    -- still wins over the inherited value.
+    local job_env = {}
+    if anchor and anchor > 0 and vim.api.nvim_win_is_valid(anchor) then
+        job_env.NVIMCTL_WIN = tostring(anchor)
+        -- Also pass the host instance's socket, so the child drives the
+        -- right one even without an inherited $NVIM.
+        local sock = vim.v.servername
+        if sock ~= "" then job_env.NVIM = sock end
+    end
+    local job_opts = {
         term = true,
         cwd = cwd,
         on_exit = function(_, code)
@@ -54,7 +65,11 @@ local function open_split(argv, cwd)
             if f then f:write(code); f:close() end
             os.remove(marker(buf) .. ".busy")
         end,
-    })
+    }
+    -- An empty env table clears the child's whole environment, so only set
+    -- it when there is something to pass down (an anchor, or the host socket).
+    if next(job_env) then job_opts.env = job_env end
+    local job = vim.fn.jobstart(argv, job_opts)
     if job <= 0 then
         pcall(vim.api.nvim_buf_delete, buf, { force = true })
         return "cannot start: " .. table.concat(argv, " ")
@@ -65,15 +80,95 @@ local function open_split(argv, cwd)
     return buf
 end
 
--- spawn CWD WIN CMD... -- WIN 0 means the current window.
-function M.spawn(a)
-    local cwd, win, argv = a[1], tonumber(a[2]) or 0, vim.list_slice(a, 3)
-    if #argv == 0 then return "usage: nvimctl spawn CMD..." end
-    if win > 0 and vim.api.nvim_win_is_valid(win) then
-        local ok, res = pcall(vim.api.nvim_win_call, win, function() return open_split(argv, cwd) end)
-        return ok and tostring(res) or ("window " .. win .. " refused the split: " .. tostring(res))
+-- Find the window the caller is running in: a terminal whose job pid is in
+-- the caller's process ancestry, else one running one of its executables.
+-- Returns 0 when nothing matches, so spawn falls back to the current window.
+local function caller_window(pids, exes)
+    local chain = {}
+    for p in tostring(pids or ""):gmatch("%d+") do chain[#chain + 1] = tonumber(p) end
+    local eset = {}
+    for e in tostring(exes or ""):gmatch("%S+") do eset[e] = true end
+
+    local terms = {}
+    for _, b in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.bo[b].buftype == "terminal" then
+            local t = vim.b[b].terminal_job_id
+            if t then
+                local ok, jp = pcall(vim.fn.jobpid, t)
+                if ok then terms[#terms + 1] = { b = b, jp = jp } end
+            end
+        end
     end
-    return tostring(open_split(argv, cwd))
+    local function winof(b)
+        local ws = vim.fn.win_findbuf(b)
+        return (ws and ws[1]) or 0
+    end
+    for _, cp in ipairs(chain) do
+        for _, tm in ipairs(terms) do
+            if tm.jp == cp then
+                local w = winof(tm.b)
+                if w > 0 then return w end
+            end
+        end
+    end
+    local uv = vim.uv or vim.loop
+    for _, tm in ipairs(terms) do
+        if not vim.b[tm.b].nvimctl then
+            local e = uv.fs_readlink("/proc/" .. tm.jp .. "/exe")
+            if e and eset[e] then
+                local w = winof(tm.b)
+                if w > 0 then return w end
+            end
+        end
+    end
+    return 0
+end
+
+-- Window id of the caller's terminal in this instance, or 0: the caller's
+-- process ancestry tells which terminal job it is running in. Used by the
+-- bash driver to find the instance that hosts the caller.
+function M.anchor_for(a) return tostring(caller_window(a[1] or "", a[2] or "")) end
+
+-- True when the caller's ancestry runs a terminal job in this instance, even
+-- when the caller's window is not here (e.g. $NVIM names the wrong socket).
+function M.has_caller_terminal(a)
+    local chain = {}
+    for p in tostring(a[1] or ""):gmatch("%d+") do chain[#chain + 1] = tonumber(p) end
+    for _, b in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.bo[b].buftype == "terminal" then
+            local t = vim.b[b].terminal_job_id
+            if t then
+                local ok, jp = pcall(vim.fn.jobpid, t)
+                if ok and jp > 0 and vim.tbl_contains(chain, jp) then return "1" end
+            end
+        end
+    end
+    return "0"
+end
+
+-- Is this window id a window in this instance? (a wrong-socket check)
+function M.winflag(a)
+    local w = tonumber(a[1]) or 0
+    return w > 0 and vim.api.nvim_win_is_valid(w) and "1" or "0"
+end
+
+-- spawn CWD WIN PIDS EXES CMD... -- WIN 0 means autodetect the caller's window.
+function M.spawn(a)
+    local cwd, win, pids, exes = a[1], tonumber(a[2]) or 0, a[3], a[4]
+    local argv = vim.list_slice(a, 5)
+    if #argv == 0 then return "usage: nvimctl spawn CMD..." end
+
+    local anchor = win
+    if anchor <= 0 or not vim.api.nvim_win_is_valid(anchor) then
+        anchor = caller_window(pids, exes)
+    end
+    if anchor > 0 and vim.api.nvim_win_is_valid(anchor) then
+        local ok, res = pcall(vim.api.nvim_win_call, anchor, function()
+            return open_split(argv, cwd, anchor)
+        end)
+        return ok and tostring(res) or ("window " .. anchor .. " refused the split: " .. tostring(res))
+    end
+    return tostring(open_split(argv, cwd, 0))
 end
 
 -- send BUF TEXT -- raw bytes; the caller supplies CR, LF, or control codes.

@@ -2,7 +2,10 @@
 # nvimctl - drive a command in an nvim split.
 #
 # A split stays open after the command exits. You send input, read the screen,
-# and close it when done. nvim is found through $NVIM.
+# and close it when done. nvim is found through $NVIM: when $NVIM is unset or
+# points nowhere, the instance that hosts the terminal nvimctl runs in is
+# found instead; nvimctl refuses when $NVIM names a different live instance
+# than the one running the caller's terminal.
 
 set -u
 
@@ -14,6 +17,27 @@ MODULE=$(dirname "$(readlink -f "$(command -v "$0" 2>/dev/null || echo "$0")")")
 RPC='(function() local a = vim.tbl_map(vim.base64.decode, _A) local p = table.remove(a, 1) local f, err = loadfile(p) if not f then return "nvimctl: " .. tostring(err) end return f().cli(a) end)()'
 
 die() { echo "nvimctl: $*" >&2; exit 1; }
+
+# Caller identity: pid chain (nearest first) and its non-shell executables.
+# Passed to nvim so spawn can anchor a split in the caller's own window.
+anchor_pids= anchor_exes=
+ancestry() {
+    local p=$$ q e i
+    anchor_pids=$$
+    for ((i = 0; i < 64; i++)); do
+        p=$(awk '/^PPid:/{print $2}' "/proc/$p/status" 2>/dev/null) || break
+        [ -n "$p" ] || break
+        anchor_pids="$anchor_pids $p"
+        [ "$p" -le 1 ] && break
+    done
+    for q in $anchor_pids; do
+        e=$(readlink "/proc/$q/exe" 2>/dev/null) || continue
+        case ${e##*/} in
+            bash|sh|dash|zsh|fish|ksh|ash|nvim|vim|systemd|konsole|kitty|alacritty|wezterm|tmux|screen|ssh|sudo) ;;
+            *) case " $anchor_exes " in *" $e "*) ;; *) anchor_exes="$anchor_exes $e" ;; esac ;;
+        esac
+    done
+}
 
 usage() {
     cat <<'EOF'
@@ -35,7 +59,7 @@ Use \\ for a literal backslash.
 
 Env:
   NVIM=<socket>       nvim instance to drive (default: inherited from the split)
-  NVIMCTL_WIN=<win>   window for spawn to split (default: the current window)
+  NVIMCTL_WIN=<win>   anchor window for spawn; default: the caller's window
 EOF
 }
 
@@ -57,16 +81,73 @@ if [ "$cmd" = done ]; then
     exit 0
 fi
 
-SOCK=${NVIM:-}
-[ -n "$SOCK" ] || die "NVIM is unset; run this inside nvim or export NVIM=<socket>"
-[ -S "$SOCK" ] || die "nothing is listening on $SOCK"
-
-# Each argument is base64 so no quoting, newline or dash can break the call.
-rpc() {
+# Call the module on one socket; prints the result. rpc() below calls this on
+# the socket being driven.
+rpc_on() {
+    local sock=$1
+    shift
     local args="'$(printf %s "$MODULE" | base64 -w0)'" arg
     for arg in "$@"; do args+=",'$(printf %s "$arg" | base64 -w0)'"; done
-    nvim --headless --server "$SOCK" --remote-expr "luaeval('$RPC', [$args])" </dev/null
+    nvim --headless --server "$sock" --remote-expr "luaeval('$RPC', [$args])" </dev/null
 }
+
+rpc() { rpc_on "$SOCK" "$@"; }
+
+# Is nvim actually reachable on this socket? A stale socket file can outlive
+# its server (e.g. after SIGKILL).
+nvim_live() {
+    nvim --headless --server "$1" --remote-expr '1' </dev/null >/dev/null 2>&1
+}
+
+# Print the first live socket whose instance hosts the caller's terminal
+# (anchor_for() in the module); empty when none does.
+scan_sockets() {
+    local s out
+    for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0; do
+        [ -S "$s" ] || continue
+        out=$(rpc_on "$s" anchor_for "$anchor_pids" "$anchor_exes" 2>/dev/null) || continue
+        case $out in
+            "" | 0) ;;
+            *) echo "$s"; return 0 ;;
+        esac
+    done
+    return 1
+}
+
+# Resolve the socket: $NVIM when it names a live server; otherwise the
+# instance that hosts the caller's terminal.
+ancestry
+SOCK=${NVIM:-}
+if [ -n "$SOCK" ] && { [ ! -S "$SOCK" ] || ! nvim_live "$SOCK"; }; then
+    # NVIM names nothing usable: find the instance that hosts the caller's
+    # terminal, so splits never open in the wrong one.
+    SOCK=$(scan_sockets) || true
+    [ -n "$SOCK" ] || die "NVIM names $NVIM but nothing is listening on it"
+fi
+if [ -z "$SOCK" ]; then
+    # NVIM is unset: try the instance that hosts the caller's terminal.
+    SOCK=$(scan_sockets) || true
+    [ -n "$SOCK" ] || die "NVIM is unset; run this inside nvim or export NVIM=<socket>"
+fi
+
+# Guards: the instance we drive must be the one the caller expects.
+#
+# Guard 1: a caller-anchored window must be a window in this instance.
+case ${NVIMCTL_WIN:-0} in
+    "" | 0) ;;
+    *[!0-9]*) die "NVIMCTL_WIN must be a window id, got '$NVIMCTL_WIN'" ;;
+    *)
+        [ "$(rpc winflag "$NVIMCTL_WIN")" = 1 ] || die "NVIMCTL_WIN=$NVIMCTL_WIN is not a window in $SOCK; NVIM may name a different neovim socket than the one that window is in"
+        ;;
+esac
+
+# Guard 2: the caller's terminal must run in this instance, not another one.
+for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0; do
+    [ -S "$s" ] || continue
+    [ "$s" = "$SOCK" ] && continue
+    [ "$(rpc_on "$s" has_caller_terminal "$anchor_pids")" = 1 ] || continue
+    die "the caller's terminal is in $s but nvimctl is driving $SOCK; run nvimctl from inside that instance or export NVIM=$s"
+done
 
 need_buf() {
     case ${1:-} in
@@ -82,7 +163,7 @@ check() {
 case $cmd in
 spawn)
     [ $# -gt 0 ] || die "usage: nvimctl spawn CMD..."
-    out=$(rpc spawn "$PWD" "${NVIMCTL_WIN:-0}" "$@") || die "spawn failed"
+    out=$(rpc spawn "$PWD" "${NVIMCTL_WIN:-0}" "$anchor_pids" "$anchor_exes" "$@") || die "spawn failed"
     case $out in "" | *[!0-9]*) die "${out#nvimctl: }" ;; esac
     echo "$out"
     ;;
@@ -90,6 +171,9 @@ task)
     need_buf "${1:-}" " TEXT..."
     shift
     [ $# -gt 0 ] || die "usage: nvimctl task BUF TEXT..."
+    case "$1" in
+        '!'*) die "task must not start with '!'; put the real task in a file and send a short pointer task" ;;
+    esac
     [ "$(rpc alive "$BUF" 2>/dev/null)" = 1 ] || die "buffer $BUF is not a live terminal"
     if [ -f "$DONE/$BUF.busy" ]; then
         die "worker $BUF is busy; run wait first"
@@ -106,10 +190,34 @@ When this is finished, end with a short report of what you did, then run exactly
 "
     mkdir -p "$DONE" || die "cannot write to $DONE"
     : > "$DONE/$BUF.busy" || die "cannot write to $DONE"
-    # A TUI drops input sent before it draws its first frame, so wait for the
-    # frame before typing. Otherwise the task vanishes and wait times out.
-    case $(rpc read "$BUF" 2>/dev/null) in *[![:space:]]*) ;; *) sleep 1 ;; esac
-    out=$(rpc send "$BUF" "$*$step"$'\r') || { rm -f "$DONE/$BUF.busy"; die "task failed"; }
+    fail_task() { rm -f "$DONE/$BUF.busy"; die "$1"; }
+    # chansend writes raw bytes into the terminal. If the worker TUI has not
+    # drawn its prompt yet, bash eats the text and runs it as a command. A blank
+    # screen is not a reliable signal (the shell prompt is non-blank), so wait
+    # for a TUI marker instead.
+    ready_pattern=${NVIMCTL_READY_PATTERN:-'ctrl+p commands'}
+    screen=''
+    if [ -n "$ready_pattern" ]; then
+        for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+            screen=$(rpc read "$BUF" 2>/dev/null)
+            case "$screen" in
+                *"$ready_pattern"*) break ;;
+            esac
+            sleep 0.5
+        done
+        case "$screen" in
+            *"$ready_pattern"*) ;;
+            *) fail_task "worker $BUF TUI is not ready (no '$ready_pattern'); respawn and retry" ;;
+        esac
+    else
+        sleep 1
+        screen=$(rpc read "$BUF" 2>/dev/null)
+    fi
+    case "$screen" in
+        *'/bin/bash: line'*|*'bash: -c:'*)
+            fail_task "worker $BUF has shell errors from input sent before the TUI was ready; respawn" ;;
+    esac
+    out=$(rpc send "$BUF" "$*$step"$'\r') || fail_task "task failed"
     if [ -n "$out" ]; then
         rm -f "$DONE/$BUF.busy"
         die "${out#nvimctl: }"

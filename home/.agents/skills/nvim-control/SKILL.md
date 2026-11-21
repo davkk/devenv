@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Neovim control
 
-`nvimctl` runs a command in a split inside the host Neovim and talks to that Neovim over `$NVIM`. It knows nothing about the command: a split is a terminal, not an agent. Use this skill for transport. The worker protocol lives in `nvim-subagent`.
+`nvimctl` runs a command in a split inside the host Neovim and talks to that Neovim over the socket it resolves: `$NVIM` when it names a live server, otherwise the instance that hosts the terminal `nvimctl` runs in. It knows nothing about the command: a split is a terminal, not an agent. Use this skill for transport. The worker protocol lives in `nvim-subagent`.
 
 Every command is a shell command, so any agent with a shell can run it.
 
@@ -52,7 +52,9 @@ nvimctl read "$buf"
 nvimctl stop "$buf"
 ```
 
-`spawn` splits the current window. `NVIMCTL_WIN=<win>` selects another window. `$NVIM` must name the Neovim socket. If it is unset, run `export NVIM=<socket>`.
+`spawn` splits the caller's own window by default, so switching tabs won't move a worker's child splits.
+
+The socket is `$NVIM` when it names a live server; when `$NVIM` is unset or points nowhere, `nvimctl` finds the instance that hosts the terminal it runs in, so splits never open in the wrong instance. `nvimctl` refuses when `$NVIM` names a different live instance than the one running the caller's terminal. `NVIMCTL_WIN=<win>` overrides the anchor; that window must be in the instance being driven, or `spawn` refuses. Workers spawned by `spawn` inherit `NVIM` and `NVIMCTL_WIN` from their host split, so they drive the same instance.
 
 ## Rules
 
