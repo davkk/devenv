@@ -12,6 +12,11 @@ vim.fn.mkdir(state_dir, "p")
 
 local function marker(buf) return state_dir .. "/" .. buf end
 
+local function fexists(path)
+    local uv = vim.uv or vim.loop
+    return uv.fs_stat(path) ~= nil
+end
+
 local function clear_state(buf)
     os.remove(marker(buf) .. ".done")
     os.remove(marker(buf) .. ".busy")
@@ -40,11 +45,12 @@ local function unfocus()
     pcall(vim.api.nvim_win_set_cursor, win, { vim.api.nvim_buf_line_count(buf), 0 })
 end
 
-local function open_split(argv, cwd, anchor)
+local function open_split(argv, cwd, anchor, name)
     local origin = vim.api.nvim_get_current_win()
     vim.cmd("botright vnew")
     local buf = vim.api.nvim_get_current_buf()
     vim.b[buf].nvimctl = vim.fn.fnamemodify(argv[1] or "worker", ":t")
+    if name and name ~= "" then vim.b[buf].nvimctl_name = name end
     clear_state(buf)
     -- Children inherit the anchor so their own spawns stay in this window
     -- even after the user switches tabs. An explicit NVIMCTL_WIN in a child
@@ -152,10 +158,101 @@ function M.winflag(a)
     return w > 0 and vim.api.nvim_win_is_valid(w) and "1" or "0"
 end
 
--- spawn CWD WIN PIDS EXES CMD... -- WIN 0 means autodetect the caller's window.
+-- Generic readiness. Walk the process tree rooted at the terminal's job pid.
+-- The terminal starts in a shell; the spawned command (or anything it execs)
+-- is a non-shell process in that tree. Ready means such a process exists, so
+-- the CLI never types a task into a bare shell prompt. No harness strings.
+local shells = { sh = true, bash = true, dash = true, zsh = true, fish = true, ksh = true, ash = true }
+
+local function is_shell(name)
+    if not name then return false end
+    local base = tostring(name):gsub("%s+$", ""):match("([^/]+)$") or tostring(name)
+    return shells[base] == true
+end
+
+-- true: a non-shell process is running; false: only shells (not ready);
+-- nil: process inspection is unavailable, fall back to the screen in the CLI.
+local function proc_ready(root)
+    local uv = vim.uv or vim.loop
+    local inspected, found = false, false
+    local children_of, name_of
+
+    if uv.fs_stat("/proc") then
+        children_of = function(pid)
+            local f = io.open("/proc/" .. pid .. "/task/" .. pid .. "/children", "r")
+            if not f then return {} end
+            local s = f:read("*a")
+            f:close()
+            local out = {}
+            for n in tostring(s or ""):gmatch("%d+") do out[#out + 1] = tonumber(n) end
+            return out
+        end
+        name_of = function(pid)
+            local e = uv.fs_readlink("/proc/" .. pid .. "/exe")
+            if e and e ~= "" then inspected = true; return e end
+            local f = io.open("/proc/" .. pid .. "/comm", "r")
+            if f then
+                local s = f:read("*a")
+                f:close()
+                if s and s ~= "" then inspected = true; return s end
+            end
+            return nil
+        end
+    else
+        -- macOS and other systems without /proc: build the tree from ps.
+        local map, names = {}, {}
+        local ok, out = pcall(vim.fn.system, { "ps", "-A", "-o", "pid=,ppid=,comm=" })
+        if ok and out and out ~= "" then
+            for line in tostring(out):gmatch("[^\n]+") do
+                local p, pp, c = line:match("^%s*(%d+)%s+(%d+)%s+(%S+)")
+                if p then
+                    p, pp = tonumber(p), tonumber(pp)
+                    names[p] = c
+                    map[pp] = map[pp] or {}
+                    table.insert(map[pp], p)
+                    inspected = true
+                end
+            end
+        end
+        children_of = function(pid) return map[pid] or {} end
+        name_of = function(pid) return names[pid] end
+    end
+
+    local seen = {}
+    local function visit(pid)
+        if not pid or pid <= 0 or seen[pid] then return end
+        seen[pid] = true
+        local name = name_of(pid)
+        if name and not is_shell(name) then found = true; return end
+        for _, c in ipairs(children_of(pid)) do
+            visit(c)
+            if found then return end
+        end
+    end
+    if root and root > 0 then visit(root) end
+    if found then return true end
+    if not inspected then return nil end
+    return false
+end
+
+-- ready BUF -> "1" ready, "0" still a shell, "?" inspection unavailable.
+function M.ready(a)
+    local job = job_of(tonumber(a[1]))
+    if not job then return "0" end
+    local ok, jp = pcall(vim.fn.jobpid, job)
+    if not ok or not jp or jp <= 0 then return "?" end
+    local r = proc_ready(jp)
+    if r == true then return "1" end
+    if r == nil then return "?" end
+    return "0"
+end
+
+-- spawn CWD WIN PIDS EXES NAME CMD... -- WIN 0 means autodetect the caller's window.
 function M.spawn(a)
     local cwd, win, pids, exes = a[1], tonumber(a[2]) or 0, a[3], a[4]
-    local argv = vim.list_slice(a, 5)
+    local name = a[5]
+    if name == "" then name = nil end
+    local argv = vim.list_slice(a, 6)
     if #argv == 0 then return "usage: nvimctl spawn CMD..." end
 
     local anchor = win
@@ -164,11 +261,11 @@ function M.spawn(a)
     end
     if anchor > 0 and vim.api.nvim_win_is_valid(anchor) then
         local ok, res = pcall(vim.api.nvim_win_call, anchor, function()
-            return open_split(argv, cwd, anchor)
+            return open_split(argv, cwd, anchor, name)
         end)
         return ok and tostring(res) or ("window " .. anchor .. " refused the split: " .. tostring(res))
     end
-    return tostring(open_split(argv, cwd, 0))
+    return tostring(open_split(argv, cwd, 0, name))
 end
 
 -- send BUF TEXT -- raw bytes; the caller supplies CR, LF, or control codes.
@@ -197,11 +294,22 @@ function M.stop(a)
     return "stopped"
 end
 
+local function state_of(buf)
+    if fexists(marker(buf) .. ".done") then return "done" end
+    if fexists(marker(buf) .. ".exit") then return "exit" end
+    if fexists(marker(buf) .. ".busy") then return "busy" end
+    if job_of(buf) then return "ready" end
+    return "exit"
+end
+
 function M.list()
     local rows = {}
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        local name = vim.b[buf].nvimctl
-        if name then rows[#rows + 1] = string.format("%d\t%s\t%s", buf, name, job_of(buf) and "live" or "dead") end
+        local cmd = vim.b[buf].nvimctl
+        if cmd then
+            local name = vim.b[buf].nvimctl_name or "-"
+            rows[#rows + 1] = string.format("%s\t%d\t%s\t%s", name, buf, cmd, state_of(buf))
+        end
     end
     return #rows > 0 and table.concat(rows, "\n") or "no workers"
 end
