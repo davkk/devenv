@@ -1,7 +1,6 @@
 ---
 name: nvim-subagent
 description: "Use when one agent must direct other agents in Neovim splits: spawn a worker, give it one task at a time, wait for its completion signal, and read its result."
-disable-model-invocation: true
 ---
 
 # Nvim subagents

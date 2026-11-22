@@ -1,6 +1,5 @@
 ---
 name: audit
-disable-model-invocation: true
 description: Use to perform an audit that produces a quickfix list of what is STILL MISSING or INCOMPLETE after a set of changes.
 ---
 

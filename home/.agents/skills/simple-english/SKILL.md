@@ -5,7 +5,6 @@ description: |
   Also use when the user says "STE", "plain English", "explain it simply", "deslop", "make this readable".
 license: MIT
 compatibility: claude-code cursor codex gemini-cli opencode
-disable-model-invocation: true
 metadata:
   version: "2.1.1"
   standard: ASD-STE100 Issue 9 (2025-01-15)

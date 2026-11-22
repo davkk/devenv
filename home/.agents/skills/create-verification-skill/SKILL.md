@@ -1,7 +1,6 @@
 ---
 name: create-verification-skill
 description: "Use when a repo has no scripted way to prove that user-facing behavior works, or when the user asks for a verification skill, a control skill for this repo, or an end-to-end setup that proves the app works. Generates a project-local skill that launches the real app, drives it the way a user does, and captures evidence, for any language, framework, or platform."
-disable-model-invocation: true
 ---
 
 # Create a verification skill

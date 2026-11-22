@@ -1,7 +1,6 @@
 ---
 name: nvim-control
 description: "Use when you need to run a command in a Neovim split and drive it: spawn a terminal, send raw input, read the screen, wait for exit, and clean up. Transport only."
-disable-model-invocation: true
 ---
 
 # Neovim control

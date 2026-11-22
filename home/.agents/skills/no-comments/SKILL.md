@@ -1,7 +1,6 @@
 ---
 name: no-comments
 description: Use when you want comments cleaned up. Deletes the ones that carry no information, puts the doubtful ones on a quickfix list for the caller to decide, and flags code that needs reshaping instead of prose.
-disable-model-invocation: true
 ---
 
 # No comments

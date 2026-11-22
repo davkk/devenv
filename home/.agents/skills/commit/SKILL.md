@@ -1,7 +1,6 @@
 ---
 name: commit
 description: use when user asks you to commit the current changes
-disable-model-invocation: true
 ---
 
 Check what was changed during the latest session. If the changes contain different aspects, try to split them into chunks and commit them separately. But keep the overall number of commits to a minimum.

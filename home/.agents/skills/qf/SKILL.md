@@ -1,7 +1,6 @@
 ---
 name: qf
 description: Use when user wants your output as a vim quickfix list.
-disable-model-invocation: true
 ---
 
 <format>
