@@ -27,7 +27,7 @@ nvimctl wait w1
 
 1. Spawn: `buf=$(nvimctl spawn --name w1 <your-agent-command>)`.
 2. Write the task to a file, then send it: `nvimctl task w1 @/tmp/task-w1.md`. (`--file /tmp/task-w1.md` is equivalent.) The CLI reads the file, so there is no shell quoting and no giant inline paste.
-3. Wait: `nvimctl wait w1`. It prints `done` (plus the result path), `exit N`, or `timeout`.
+3. Wait: `nvimctl wait w1`. It prints `done` (plus the result path), `idle`, `exit N`, or `timeout`.
 4. On `done`, read the verbatim result: `nvimctl result w1`. Only the worker's `nvimctl done` ends a turn.
 5. Send the next task, or `stop` the worker when finished.
 
@@ -58,6 +58,7 @@ Inline text still works: `nvimctl task w1 "Do X. Exact steps: ..."`. The complet
 ## Outcomes
 
 - `done`: read the result, then decide whether to send another task.
+- `idle`: the last turn was already collected and no new task is pending; send a task or `stop` the worker.
 - `exit N`: the worker died. `wait` includes the last ~10 screen lines; read them, then spawn a new worker. Do not task a dead buffer.
 - `timeout`: still running. `peek`/`read` to see if it is working; `wait` again, interrupt with `input`, or `stop`.
 

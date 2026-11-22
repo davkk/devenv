@@ -17,7 +17,7 @@ Every command is a shell command, so any agent with a shell can run it.
 | `nvimctl spawn CMD...` | split, run `CMD`, print the new buffer number |
 | `nvimctl input BUF TEXT...` | send raw bytes, no newline added |
 | `nvimctl read BUF` | print what the split shows now |
-| `nvimctl wait BUF [SECS]` | print `done`, `exit N`, or `timeout` |
+| `nvimctl wait BUF [SECS]` | print `done`, `idle`, `exit N`, or `timeout` |
 | `nvimctl stop BUF` | close the split and kill the process |
 | `nvimctl list` | print each worker's name, buffer, command and state (`ready`, `busy`, `done`, `exit`) |
 
@@ -40,7 +40,7 @@ Escapes: `\r`, `\n`, `\t`, `\e`, `\xHH`, and `\0NNN`. Use `\\` for a literal bac
 
 - `read` prints the visible screen. Lines wrap at split width, not logical lines. For long output, make the command write a file and read that file.
 - `wait` polls every 3 seconds, default 300 seconds. `done` requires a `nvimctl done BUF` call. `exit N` exposes the process exit code. `timeout` means the process is still alive.
-- `wait` consumes the `done` marker. One marker means one turn.
+- `wait` consumes the `done` marker. One marker means one turn. Calling `wait` again on a task worker with no new task prints `idle` at once instead of blocking to timeout.
 - `list` is recovery only: use it to find a buffer number you lost. It is not a status command.
 
 ## Spawning

@@ -21,6 +21,7 @@ local function clear_state(buf)
     os.remove(marker(buf) .. ".done")
     os.remove(marker(buf) .. ".busy")
     os.remove(marker(buf) .. ".exit")
+    os.remove(marker(buf) .. ".protocol")
 end
 
 local function job_of(buf)

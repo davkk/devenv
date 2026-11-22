@@ -52,7 +52,7 @@ Drive a command in an nvim split. Commands talk to nvim through $NVIM.
   task BUF --file FILE same as @FILE
   read BUF             print what the split shows now
   peek BUF             report state without consuming the done marker
-  wait BUF [SECS]      print done + result path, exit N, or timeout (default 300s, every 3s)
+  wait BUF [SECS]      print done + result path, idle, exit N, or timeout (default 300s, every 3s)
   result BUF           print the verbatim result a worker stored with done
   stop BUF             close the split and kill the process
   list                 print each worker: name, buffer, command, state
@@ -115,6 +115,9 @@ if [ "$cmd" = done ]; then
         esac
     fi
     : > "$DONE/$BUF.done" || die "cannot write to $DONE"
+    # Written last: a concurrent wait must see .done first, never a bare
+    # protocol marker that would look like an already-collected turn.
+    : > "$DONE/$BUF.protocol" || die "cannot write to $DONE"
     rm -f "$DONE/$BUF.busy"
     exit 0
 fi
@@ -302,6 +305,7 @@ When this is finished, end with a short report of what you did, then run exactly
   nvimctl done $BUF
 "
     mkdir -p "$DONE" || die "cannot write to $DONE"
+    rm -f "$DONE/$BUF.protocol" || die "cannot clear protocol for $BUF"
     : > "$DONE/$BUF.busy" || die "cannot write to $DONE"
     fail_task() { rm -f "$DONE/$BUF.busy"; die "$1"; }
     # Generic readiness: the spawned command (a non-shell process) must be
@@ -400,6 +404,12 @@ wait)
     if [ $keep -eq 1 ]; then peek_state; exit 0; fi
     secs=${2:-300}
     case $secs in *[!0-9]*) die "bad seconds '$secs'" ;; esac
+    # A collected turn leaves no .done/.busy/.exit. If this is a task worker,
+    # waiting again with no new task must return at once, not block to timeout.
+    if [ ! -f "$DONE/$BUF.done" ] && [ ! -f "$DONE/$BUF.busy" ] && [ ! -f "$DONE/$BUF.exit" ] && [ -f "$DONE/$BUF.protocol" ]; then
+        echo idle
+        exit 0
+    fi
     for ((i = 0; i < secs; i += 3)); do
         if [ -f "$DONE/$BUF.done" ]; then
             rm -f "$DONE/$BUF.done" "$DONE/$BUF.busy" "$DONE/$BUF.exit"
