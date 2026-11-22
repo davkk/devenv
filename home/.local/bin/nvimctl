@@ -67,7 +67,6 @@ Use \\ for a literal backslash.
 
 Env:
   NVIM=<socket>       nvim instance to drive (default: inherited from the split)
-  NVIMCTL_WIN=<win>   anchor window for spawn; default: the caller's window
 EOF
 }
 
@@ -179,16 +178,7 @@ else
     fi
 fi
 
-anchor_win=${NVIMCTL_WIN:-0}
 if [ -n "$SOCK" ]; then
-    case $anchor_win in
-    "" | 0) ;;
-    *[!0-9]*) guards+="NVIMCTL_WIN must be a window id, got '$NVIMCTL_WIN'"$'\n' ;;
-    *)
-        [ "$(rpc winflag "$anchor_win")" = 1 ] ||
-            guards+="NVIMCTL_WIN=$anchor_win is not a window in $SOCK; NVIM may name a different socket"$'\n'
-        ;;
-    esac
     for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0; do
         [ -S "$s" ] || continue
         [ "$s" = "$SOCK" ] && continue
@@ -204,8 +194,7 @@ if [ "$cmd" = doctor ]; then
     else
         echo "live: no"
     fi
-    aw=$anchor_win
-    case $aw in "" | 0) aw=$(rpc anchor_for "$anchor_pids" "$anchor_exes" 2>/dev/null) || true ;; esac
+    aw=$(rpc anchor_for "$anchor_pids" "$anchor_exes" 2>/dev/null) || true
     echo "anchor window: ${aw:-0}"
     if [ -n "$SOCK" ]; then
         case $(rpc has_caller_terminal "$anchor_pids" 2>/dev/null) in
@@ -222,7 +211,7 @@ if [ "$cmd" = doctor ]; then
     if [ -n "$notes$guards" ]; then
         echo "problems:"
         printf '%s' "$notes$guards" | sed '/^$/d;s/^/  - /'
-        echo "next steps: run nvimctl from inside the nvim terminal that hosts you, or export NVIM=<that socket>; fix NVIMCTL_WIN if it is set."
+        echo "next steps: run nvimctl from inside the nvim terminal that hosts you, or export NVIM=<that socket>."
     else
         echo "problems: none"
     fi
@@ -274,7 +263,7 @@ spawn)
         case $name in "" | *[!A-Za-z0-9_.-]*) die "bad worker name '$name'" ;; esac
     fi
     [ $# -gt 0 ] || die "usage: nvimctl spawn [--name NAME] CMD..."
-    out=$(rpc spawn "$PWD" "${NVIMCTL_WIN:-0}" "$anchor_pids" "$anchor_exes" "$name" "$@") || die "spawn failed"
+    out=$(rpc spawn "$PWD" "$anchor_pids" "$anchor_exes" "$name" "$@") || die "spawn failed"
     case $out in "" | *[!0-9]*) die "${out#nvimctl: }" ;; esac
     if [ -n "$name" ]; then
         mkdir -p "$DONE/names" || die "cannot write to $DONE/names"

@@ -45,24 +45,13 @@ local function unfocus()
     pcall(vim.api.nvim_win_set_cursor, win, { vim.api.nvim_buf_line_count(buf), 0 })
 end
 
-local function open_split(argv, cwd, anchor, name)
+local function open_split(argv, cwd, name)
     local origin = vim.api.nvim_get_current_win()
     vim.cmd("botright vnew")
     local buf = vim.api.nvim_get_current_buf()
     vim.b[buf].nvimctl = vim.fn.fnamemodify(argv[1] or "worker", ":t")
     if name and name ~= "" then vim.b[buf].nvimctl_name = name end
     clear_state(buf)
-    -- Children inherit the anchor so their own spawns stay in this window
-    -- even after the user switches tabs. An explicit NVIMCTL_WIN in a child
-    -- still wins over the inherited value.
-    local job_env = {}
-    if anchor and anchor > 0 and vim.api.nvim_win_is_valid(anchor) then
-        job_env.NVIMCTL_WIN = tostring(anchor)
-        -- Also pass the host instance's socket, so the child drives the
-        -- right one even without an inherited $NVIM.
-        local sock = vim.v.servername
-        if sock ~= "" then job_env.NVIM = sock end
-    end
     local job_opts = {
         term = true,
         cwd = cwd,
@@ -72,9 +61,10 @@ local function open_split(argv, cwd, anchor, name)
             os.remove(marker(buf) .. ".busy")
         end,
     }
-    -- An empty env table clears the child's whole environment, so only set
-    -- it when there is something to pass down (an anchor, or the host socket).
-    if next(job_env) then job_opts.env = job_env end
+    -- Give the child the host socket so its own nvimctl calls drive this
+    -- instance even when it did not inherit $NVIM.
+    local sock = vim.v.servername
+    if sock ~= "" then job_opts.env = { NVIM = sock } end
     local job = vim.fn.jobstart(argv, job_opts)
     if job <= 0 then
         pcall(vim.api.nvim_buf_delete, buf, { force = true })
@@ -150,12 +140,6 @@ function M.has_caller_terminal(a)
         end
     end
     return "0"
-end
-
--- Is this window id a window in this instance? (a wrong-socket check)
-function M.winflag(a)
-    local w = tonumber(a[1]) or 0
-    return w > 0 and vim.api.nvim_win_is_valid(w) and "1" or "0"
 end
 
 -- Generic readiness. Walk the process tree rooted at the terminal's job pid.
@@ -247,25 +231,22 @@ function M.ready(a)
     return "0"
 end
 
--- spawn CWD WIN PIDS EXES NAME CMD... -- WIN 0 means autodetect the caller's window.
+-- spawn CWD PIDS EXES NAME CMD... -- the split always goes in the caller's own window.
 function M.spawn(a)
-    local cwd, win, pids, exes = a[1], tonumber(a[2]) or 0, a[3], a[4]
-    local name = a[5]
+    local cwd, pids, exes = a[1], a[2], a[3]
+    local name = a[4]
     if name == "" then name = nil end
-    local argv = vim.list_slice(a, 6)
+    local argv = vim.list_slice(a, 5)
     if #argv == 0 then return "usage: nvimctl spawn CMD..." end
 
-    local anchor = win
-    if anchor <= 0 or not vim.api.nvim_win_is_valid(anchor) then
-        anchor = caller_window(pids, exes)
-    end
+    local anchor = caller_window(pids, exes)
     if anchor > 0 and vim.api.nvim_win_is_valid(anchor) then
         local ok, res = pcall(vim.api.nvim_win_call, anchor, function()
-            return open_split(argv, cwd, anchor, name)
+            return open_split(argv, cwd, name)
         end)
         return ok and tostring(res) or ("window " .. anchor .. " refused the split: " .. tostring(res))
     end
-    return tostring(open_split(argv, cwd, 0, name))
+    return tostring(open_split(argv, cwd, name))
 end
 
 -- send BUF TEXT -- raw bytes; the caller supplies CR, LF, or control codes.

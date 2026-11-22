@@ -19,7 +19,7 @@ Every command is a shell command, so any agent with a shell can run it.
 | `nvimctl read BUF` | print what the split shows now |
 | `nvimctl wait BUF [SECS]` | print `done`, `exit N`, or `timeout` |
 | `nvimctl stop BUF` | close the split and kill the process |
-| `nvimctl list` | print buffer, command, and `live` or `dead` |
+| `nvimctl list` | print each worker's name, buffer, command and state (`ready`, `busy`, `done`, `exit`) |
 
 `nvimctl` also has `task` and `done` for the worker protocol. See `nvim-subagent` before you use them. A plain command never calls `done`, so `wait` on it returns `exit N` or `timeout`.
 
@@ -52,9 +52,9 @@ nvimctl read "$buf"
 nvimctl stop "$buf"
 ```
 
-`spawn` splits the caller's own window by default, so switching tabs won't move a worker's child splits.
+`spawn` always splits the caller's own window, detected from the caller's process ancestry, so switching tabs won't move a worker's child splits. There is no window env var to set or inherit.
 
-The socket is `$NVIM` when it names a live server; when `$NVIM` is unset or points nowhere, `nvimctl` finds the instance that hosts the terminal it runs in, so splits never open in the wrong instance. `nvimctl` refuses when `$NVIM` names a different live instance than the one running the caller's terminal. `NVIMCTL_WIN=<win>` overrides the anchor; that window must be in the instance being driven, or `spawn` refuses. Workers spawned by `spawn` inherit `NVIM` and `NVIMCTL_WIN` from their host split, so they drive the same instance.
+The socket is `$NVIM` when it names a live server; when `$NVIM` is unset or points nowhere, `nvimctl` finds the instance that hosts the terminal it runs in, so splits never open in the wrong instance. `nvimctl` refuses when `$NVIM` names a different live instance than the one running the caller's terminal. Workers spawned by `spawn` are given the host instance's `NVIM` so they drive the same instance.
 
 ## Rules
 

@@ -67,5 +67,5 @@ Inline text still works: `nvimctl task w1 "Do X. Exact steps: ..."`. The complet
 - Keep at most two workers alive at once. Use `list`, and stop a finished worker before spawning a third.
 - Make all decisions yourself. Give exact instructions; do not ask a worker to judge, review, choose, or rank.
 - One task per worker at a time. Reuse a finished worker when the next task builds on its context; for unrelated work, stop and spawn fresh. There is no reset command.
-- `spawn` opens splits in your own window, so a worker's children stay there across tab changes. An anchored worker inherits `NVIM` and `NVIMCTL_WIN`; run `nvimctl doctor` if something looks wrong.
+- `spawn` opens splits in the caller's own window (detected from process ancestry), so a worker's children stay there across tab changes. There is no window env var; a worker is given the host instance's `NVIM`. Run `nvimctl doctor` if something looks wrong.
 - Do not use `--remote-send`; it types into the live user interface. Run `nvimctl --help` for the full command list.
