@@ -99,7 +99,7 @@ _build_ps1() {
     local prompt_dir="\[\e[1m\]\[\e[34m\]${d}\[\e[0m\]"
 
     local job_count prompt_jobs=""
-    job_count=$(jobs -p 2>/dev/null | wc -l)
+    job_count=$(( $(jobs -p 2>/dev/null | wc -l) ))
     (( job_count > 0 )) && prompt_jobs="\[\e[90m\]+${job_count}\[\e[0m\] "
 
     local symbol="%"; (( EUID == 0 )) && symbol="#"
