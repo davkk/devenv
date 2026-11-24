@@ -144,7 +144,7 @@ nvim_live() {
 # (anchor_for() in the module); empty when none does.
 scan_sockets() {
     local s out
-    for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0; do
+    for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0 "${TMPDIR:-/tmp}"/nvim.*/*/nvim.*.0; do
         [ -S "$s" ] || continue
         out=$(rpc_on "$s" anchor_for "$anchor_pids" "$anchor_exes" 2>/dev/null) || continue
         case $out in
@@ -182,7 +182,7 @@ else
 fi
 
 if [ -n "$SOCK" ]; then
-    for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0; do
+    for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0 "${TMPDIR:-/tmp}"/nvim.*/*/nvim.*.0; do
         [ -S "$s" ] || continue
         [ "$s" = "$SOCK" ] && continue
         [ "$(rpc_on "$s" has_caller_terminal "$anchor_pids")" = 1 ] || continue

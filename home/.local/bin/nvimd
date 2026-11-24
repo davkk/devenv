@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-choice=$(for s in ${XDG_RUNTIME_DIR:-/tmp}/nvim.*.0; do
+# Linux: $XDG_RUNTIME_DIR/nvim.<pid>.0; macOS (or no XDG): $TMPDIR/nvim.<user>/<rand>/nvim.<pid>.0
+choice=$(for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0 "${TMPDIR:-/tmp}"/nvim.*/*/nvim.*.0; do
     [ -S "$s" ] || continue
     cwd=$(nvim --headless --server "$s" --remote-expr 'getcwd()' 2>/dev/null) || continue
     buf=$(nvim --headless --server "$s" --remote-expr 'bufname("%")' 2>/dev/null)
