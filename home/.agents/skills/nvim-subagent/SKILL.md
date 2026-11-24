@@ -28,7 +28,7 @@ nvimctl wait w1
 2. Write the task to a file, then send it: `nvimctl task w1 @/tmp/task-w1.md`. (`--file /tmp/task-w1.md` is equivalent.) The CLI reads the file, so there is no shell quoting and no giant inline paste.
 3. Wait: `nvimctl wait w1`. It prints `done` (plus the result path), `idle`, `exit N`, or `timeout`.
 4. On `done`, read the verbatim result: `nvimctl result w1`. Only the worker's `nvimctl done` ends a turn.
-5. Send the next task, or `stop` the worker when finished.
+5. Send the next task to the same worker. Keep the split open; `stop` only when the whole job is finished.
 
 Inline text still works: `nvimctl task w1 "Do X. Exact steps: ..."`. The completion step below is appended in both cases.
 
@@ -52,20 +52,23 @@ Inline text still works: `nvimctl task w1 "Do X. Exact steps: ..."`. The complet
 - `doctor` — print the resolved nvim socket, whether it is live, the anchor window, whether your terminal is hosted in that instance, current workers, and any problems with next steps.
 - `read w1` — print the visible screen (wrapped at split width); for a long result, have the worker write a file instead.
 - `input w1 'y\r'` — raw-byte escape hatch for questions or interrupts. It does not touch turn state, so never use it to start a normal task (the completion step would be skipped).
-- `stop w1` — close the split and kill the worker; only for cleanup.
+- `stop w1` — close the split and kill the worker; only at the end of the job or for a dead or stuck worker, never between tasks.
 
 ## Outcomes
 
 - `done`: read the result, then decide whether to send another task.
-- `idle`: the last turn was already collected and no new task is pending; send a task or `stop` the worker.
+- `idle`: the last turn was already collected and no new task is pending; send the next task to this worker.
 - `exit N`: the worker died. `wait` includes the last ~10 screen lines; read them, then spawn a new worker. Do not task a dead buffer.
 - `timeout`: still running. `peek`/`read` to see if it is working; `wait` again, interrupt with `input`, or `stop`.
 
 ## Rules
 
 - Prefer named workers and `@file` tasks for every turn; reserve inline text for short prompts.
-- Keep at most two workers alive at once. Use `list`, and stop a finished worker before spawning a third.
+- Keep at most two workers alive at once. Use `list`. At the limit, reuse one of the two; stop one only if both are dead or stuck.
 - Make all decisions yourself. Give exact instructions; do not ask a worker to judge, review, choose, or rank.
-- One task per worker at a time. Reuse a finished worker when the next task builds on its context; for unrelated work, stop and spawn fresh. There is no reset command.
+- Reuse before you spawn. Before every `spawn`, run `nvimctl list`. If a worker is `idle` or `done` (collect the result first), send it the next task with `task`, even when the work is unrelated. Do not `stop` a healthy worker just to open a fresh split for the next task; the user wants the existing splits kept, not closed and reopened.
+- Spawn only when no live worker exists, or the worker is `exit N`, or you need a second worker for parallel work (see the two-worker limit). Never call `spawn` with a name that `list` already shows.
+- One task per worker at a time. Because workers keep their context, write each task so it is self-contained: name the files, state the goal, and do not rely on earlier turns unless the task builds on them. There is no reset command, so do not restart a worker to clear context.
+- `stop` only when the whole job is finished, when the worker is dead, or when it is stuck and `input` cannot recover it.
 - `spawn` opens splits in the caller's own window (detected from process ancestry), so a worker's children stay there across tab changes. There is no window env var; a worker is given the host instance's `NVIM`. Run `nvimctl doctor` if something looks wrong.
 - Do not use `--remote-send`; it types into the live user interface. Run `nvimctl --help` for the full command list.
