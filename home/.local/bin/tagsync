@@ -31,6 +31,7 @@ find_files() {
         -not -path '*/target/*' \
         -not -path '*/static/*' \
         -not -path '*/__pycache__/*' \
+        -not -path '*/.next/*' \
         -not -path '*/nbextensions/*' \
         "$@"
 }
@@ -56,7 +57,7 @@ fi
 [[ -s $tmp/files || -s $tmp/gone ]] || exit 0
 
 if [[ -s $tmp/files ]]; then
-    threads=$(( $(nproc) - 3 ))
+    threads=$(( $(getconf _NPROCESSORS_ONLN) - 3 ))
     ((threads > 0)) || threads=1
     parallel -j "$threads" -n 50 \
         ctags "${CTAGS_FLAGS[@]}" --sort=no -f - {} < "$tmp/files" > "$tmp/new"
