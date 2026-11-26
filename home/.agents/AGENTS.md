@@ -5,6 +5,7 @@ Do not agree with me by default. Act as a critical thinking partner. Challenge m
 ## Behavior
 
 - DO NOT WRITE NOR RUN TESTS yourself, do not commit, do not push work, do not edit files - when not specifically asked for.
+- DO NOT use builtin subagents features. prefer to use my nvim-subagent skill instead
 
 ## Memory
 
