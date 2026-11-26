@@ -34,6 +34,7 @@ end
 vim.o.findfunc = "v:lua.FindFunc"
 
 vim.keymap.set("n", "-", "<Plug>(nvim-dir-up)")
+vim.keymap.set("t", "<c-;>", "<c-\\><c-n>")
 vim.keymap.set("n", "<leader>u", function()
     vim.cmd.packadd "nvim.undotree"
     vim.cmd.Undotree()
@@ -72,6 +73,7 @@ vim.api.nvim_set_hl(0, "DiffAdd", { fg = "none", ctermfg = "none", update = true
 vim.api.nvim_set_hl(0, "DiffText", { fg = "none", ctermfg = "none", update = true })
 vim.api.nvim_set_hl(0, "DiffChange", { fg = "none", ctermfg = "none", update = true })
 require("vim._core.ui2").enable()
+vim.api.nvim_set_hl(0, "QuickFixLine", { link = "Pmenu" })
 
 vim.pack.add {
     { src = "https://github.com/nvim-treesitter/nvim-treesitter", version = "main" },
