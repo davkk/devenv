@@ -46,6 +46,15 @@ log() {
 export OS=$(detect_os)
 export ARCH=$(detect_arch)
 
+if [[ "$OS" == "macos" ]] && ! command -v brew &>/dev/null; then
+    for brew_bin in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+        if [[ -x "$brew_bin" ]]; then
+            eval "$("$brew_bin" shellenv)"
+            break
+        fi
+    done
+fi
+
 if [[ "$OS" == "unknown" ]]; then
     echo "Warning: unknown OS"
 fi
@@ -58,7 +67,7 @@ wait_apt_lock() {
 
 log "[RUN] [OS: $OS] [filter: $grep]"
 
-runs_dir=$(find "$DEV_ENV/runs" -mindepth 1 -maxdepth 1 -type f -executable 2>/dev/null || true)
+runs_dir=$(find "$DEV_ENV/runs" -mindepth 1 -maxdepth 1 -type f -perm -u+x || true)
 
 if [[ -z "$runs_dir" ]]; then
     echo "Error: no executable scripts found in $DEV_ENV/runs"

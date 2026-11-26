@@ -1,0 +1,20 @@
+\.stow-local-ignore
+\.DS_Store
+
+# stow defaults, which a local ignore file replaces
+RCS
+.+,v
+CVS
+\.\#.+
+\.cvsignore
+\.svn
+_darcs
+\.hg
+\.git
+\.gitignore
+\.gitmodules
+.+~
+\#.*\#
+^/README.*
+^/LICENSE.*
+^/COPYING

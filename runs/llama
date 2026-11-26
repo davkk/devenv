@@ -16,6 +16,11 @@ if [[ ! -d "$CODEDIR/llama.cpp/.git" ]]; then
 fi
 
 cd "$CODEDIR/llama.cpp"
-cmake -B build -DBUILD_SHARED_LIBS=OFF -DGGML_VULKAN=ON
+cmake_flags=(-DBUILD_SHARED_LIBS=OFF)
+if [[ "$OS" != "macos" ]]; then
+    cmake_flags+=(-DGGML_VULKAN=ON)
+fi
+
+cmake -B build "${cmake_flags[@]}"
 cmake --build build --config Release -j
 sudo cmake --install build

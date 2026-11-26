@@ -28,7 +28,11 @@ export SUDO_EDITOR=$EDITOR
 
 export FZF_DEFAULT_OPTS="--reverse"
 
-alias l='ls -lah --color=auto --group-directories-first'
+if ls --version &>/dev/null; then
+    alias l='ls -lah --color=auto --group-directories-first'
+else
+    alias l='ls -lahG'
+fi
 alias gbtm='spd-say "get back to me"'
 
 sd() {

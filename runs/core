@@ -18,6 +18,6 @@ case "$OS" in
             stow btop unison
         ;;
     macos)
-        brew install stow gcc llvm ninja git curl wget moreutils make cmake unzip parallel tmux jq stow btop unison
+        brew install stow gcc llvm ninja git curl wget moreutils make cmake unzip parallel tmux jq btop unison
         ;;
 esac
