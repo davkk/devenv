@@ -1,74 +1,18 @@
 ---
 name: nvim-subagent
-description: "Use when one agent must direct other agents in Neovim splits: spawn a worker, give it one task at a time, wait for its completion signal, and read its result."
+description: "Use when one agent must direct other agents in Neovim: send a named worker one task at a time and read its result."
 ---
 
 # Nvim subagents
 
-You are the orchestrator. A worker is an agent in its own nvim split. It stays open between turns and keeps its context. You give it one task at a time. Transport mechanics live in `nvim-control`; this skill adds the worker protocol. Everything below is harness-agnostic: it works for any command given to `spawn`.
+A worker is an agent in a named nvim terminal. The script owns spawning, reuse, readiness, turn state and the worker limit. Its commands are transport names; this skill gives them their agent meaning.
 
-## Setup
+- `nvimctl ask NAME @FILE [-- CMD...]` — send a task file and wait. `CMD` starts `NAME` only when it is dead. Calling it again with the same name is a follow-up; the worker keeps its context. The first output line is `done` with the result, `exit N`, or `timeout` followed by screen lines.
+- `nvimctl input NAME TEXT...` — send raw bytes to a running worker without touching turn state. Use `'\003'` to interrupt or text to steer it. Escapes: `\r \n \t \e \xHH \0NNN`, `\\`. Never use it to start a task.
+- `nvimctl stop NAME` — kill the worker when the job is finished or the worker is stuck.
 
-Spawn a worker with the command your harness provides, and give it a name so you never have to track buffer numbers:
+The worker ends each turn with `nvimctl done`. The worker reads its own name from the environment.
 
-```bash
-buf=$(nvimctl spawn --name w1 <your-agent-command>)
-```
+Write each task to a file: name the files, state the goal, give exact steps, and make it self-contained. Make all decisions yourself; never ask a worker to judge, review, choose or rank.
 
-`spawn` prints the buffer number and nothing else; it does not send a prompt. The name is recorded in `$DONE/names/`, and every buffer-taking command accepts either a name or a numeric buffer. Use the name from here on:
-
-```bash
-nvimctl task w1 ...
-nvimctl wait w1
-```
-
-## Turn loop (preferred: named worker + @file task)
-
-1. Spawn: `buf=$(nvimctl spawn --name w1 <your-agent-command>)`.
-2. Write the task to a file, then send it: `nvimctl task w1 @/tmp/task-w1.md`. (`--file /tmp/task-w1.md` is equivalent.) The CLI reads the file, so there is no shell quoting and no giant inline paste.
-3. Wait: `nvimctl wait w1`. It prints `done` (plus the result path), `idle`, `exit N`, or `timeout`.
-4. On `done`, read the verbatim result: `nvimctl result w1`. Only the worker's `nvimctl done` ends a turn.
-5. Send the next task to the same worker. Keep the split open; `stop` only when the whole job is finished.
-
-Inline text still works: `nvimctl task w1 "Do X. Exact steps: ..."`. The completion step below is appended in both cases.
-
-## Protocol details
-
-- **Guards.** `task` refuses when the worker is busy or has an unread result. Run `wait` first. This keeps one task in flight and prevents two completions.
-- **Safety.** `task` rejects text whose first character is `!`, and waits (bounded) until the terminal's foreground process is the spawned command rather than a shell. It then waits for the screen to stop changing for a few samples before typing, so a TUI that is still loading cannot drop the prompt. It never types into a shell prompt. If it dies with "not ready" or "screen never settled", `stop` and respawn; if the screen shows shell errors, the worker was typed into too early.
-- **Completion step.** `task` appends:
-  > You are a worker: do this task, ask nothing, run no memo commands.
-  >
-  > When this is finished, end with a short report of what you did, then run exactly this in your shell and stop:
-  > `nvimctl done <buffer>`
-
-  A worker can persist a structured result with `nvimctl done <buf> "TEXT..."` or `nvimctl done <buf> --file PATH`; it is stored verbatim at `$DONE/<buf>.result`.
-
-## Other commands
-
-- `peek w1` — report state (`ready`, `busy`, `done`, `exit N`) without consuming the `done` marker. `wait --keep w1` does the same.
-- `result w1` — print the stored result verbatim. `wait` prints its path but leaves the file intact.
-- `list` — print each worker's name, buffer, command and state.
-- `doctor` — print the resolved nvim socket, whether it is live, the anchor window, whether your terminal is hosted in that instance, current workers, and any problems with next steps.
-- `read w1` — print the visible screen (wrapped at split width); for a long result, have the worker write a file instead.
-- `input w1 'y\r'` — raw-byte escape hatch for questions or interrupts. It does not touch turn state, so never use it to start a normal task (the completion step would be skipped).
-- `stop w1` — close the split and kill the worker; only at the end of the job or for a dead or stuck worker, never between tasks.
-
-## Outcomes
-
-- `done`: read the result, then decide whether to send another task.
-- `idle`: the last turn was already collected and no new task is pending; send the next task to this worker.
-- `exit N`: the worker died. `wait` includes the last ~10 screen lines; read them, then spawn a new worker. Do not task a dead buffer.
-- `timeout`: still running. `peek`/`read` to see if it is working; `wait` again, interrupt with `input`, or `stop`.
-
-## Rules
-
-- Prefer named workers and `@file` tasks for every turn; reserve inline text for short prompts.
-- Keep at most two workers alive at once. Use `list`. At the limit, reuse one of the two; stop one only if both are dead or stuck.
-- Make all decisions yourself. Give exact instructions; do not ask a worker to judge, review, choose, or rank.
-- Reuse before you spawn. Before every `spawn`, run `nvimctl list`. If a worker is `idle` or `done` (collect the result first), send it the next task with `task`, even when the work is unrelated. Do not `stop` a healthy worker just to open a fresh split for the next task; the user wants the existing splits kept, not closed and reopened.
-- Spawn only when no live worker exists, or the worker is `exit N`, or you need a second worker for parallel work (see the two-worker limit). Never call `spawn` with a name that `list` already shows.
-- One task per worker at a time. Because workers keep their context, write each task so it is self-contained: name the files, state the goal, and do not rely on earlier turns unless the task builds on them. There is no reset command, so do not restart a worker to clear context.
-- `stop` only when the whole job is finished, when the worker is dead, or when it is stuck and `input` cannot recover it.
-- `spawn` opens splits in the caller's own window (detected from process ancestry), so a worker's children stay there across tab changes. There is no window env var; a worker is given the host instance's `NVIM`. Run `nvimctl doctor` if something looks wrong.
-- Do not use `--remote-send`; it types into the live user interface. Run `nvimctl --help` for the full command list.
+For parallel work, run two `ask` commands in the background in one shell. For recovery, `nvimctl wait NAME` collects after a timeout and `nvimctl read NAME` prints the screen.

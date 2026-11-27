@@ -1,477 +1,316 @@
 #!/usr/bin/env bash
-# nvimctl - drive a command in an nvim split.
-#
-# A split stays open after the command exits. You send input, read the screen,
-# and close it when done. nvim is found through $NVIM: when $NVIM is unset or
-# points nowhere, the instance that hosts the terminal nvimctl runs in is
-# found instead; nvimctl refuses when $NVIM names a different live instance
-# than the one running the caller's terminal.
-
+# nvimctl - drive named agent workers in terminals inside the host nvim.
 set -u
 
-DONE=${XDG_RUNTIME_DIR:-/tmp}/nvimctl
-# Resolve through the ~/.local/bin symlink so the module is found in the repo.
-MODULE=$(dirname "$(readlink -f "$(command -v "$0" 2>/dev/null || echo "$0")")")/../lib/nvimctl/nvimctl.lua
+ROOT=${XDG_RUNTIME_DIR:-/tmp}/nvimctl
+TIMEOUT=${NVIMCTL_TIMEOUT:-110}
+MAX=${NVIMCTL_MAX:-2}
+LAYOUT=${NVIMCTL_LAYOUT:-split}
 
-# Runs inside nvim: decode the args, load the module, dispatch.
-RPC='(function() local a = vim.tbl_map(vim.base64.decode, _A) local p = table.remove(a, 1) local f, err = loadfile(p) if not f then return "nvimctl: " .. tostring(err) end return f().cli(a) end)()'
+self=$0
+while [ -L "$self" ]; do
+    d=$(dirname "$self")
+    t=$(readlink "$self")
+    case $t in /*) self=$t ;; *) self=$d/$t ;; esac
+done
+SELF_DIR=$(cd -P "$(dirname "$self")" && pwd)
+MODULE=$SELF_DIR/../lib/nvimctl/nvimctl.lua
+[ -f "$MODULE" ] || { echo "nvimctl: module not found: $MODULE" >&2; exit 1; }
+
+if base64 -w0 </dev/null >/dev/null 2>&1; then B64='base64 -w0'; else B64='base64 -b 0'; fi
 
 die() { echo "nvimctl: $*" >&2; exit 1; }
-
-# Caller identity: pid chain (nearest first) and its non-shell executables.
-# Passed to nvim so spawn can anchor a split in the caller's own window.
-anchor_pids= anchor_exes=
-ancestry() {
-    local p=$$ q e i
-    anchor_pids=$$
-    for ((i = 0; i < 64; i++)); do
-        p=$(awk '/^PPid:/{print $2}' "/proc/$p/status" 2>/dev/null) || break
-        [ -n "$p" ] || break
-        anchor_pids="$anchor_pids $p"
-        [ "$p" -le 1 ] && break
-    done
-    for q in $anchor_pids; do
-        e=$(readlink "/proc/$q/exe" 2>/dev/null) || continue
-        case ${e##*/} in
-            bash|sh|dash|zsh|fish|ksh|ash|nvim|vim|systemd|konsole|kitty|alacritty|wezterm|tmux|screen|ssh|sudo) ;;
-            *) case " $anchor_exes " in *" $e "*) ;; *) anchor_exes="$anchor_exes $e" ;; esac ;;
-        esac
-    done
-}
 
 usage() {
     cat <<'EOF'
 usage: nvimctl COMMAND [ARGS]
 
-Drive a command in an nvim split. Commands talk to nvim through $NVIM.
+  ask NAME @FILE [-- CMD...]   send a task, wait, print the outcome
+  input NAME TEXT...           send raw bytes to a running worker
+  stop NAME                    kill a finished or dead worker
+  done                         worker side: end this worker's turn
 
-  spawn [--name NAME] CMD...   split, run CMD, print the new buffer number
-  input BUF TEXT...    send raw bytes; no newline is added
-  task BUF TEXT...     send one worker turn; TEXT gets the completion step
-  task BUF @FILE       read the task text from a file instead
-  task BUF --file FILE same as @FILE
-  read BUF             print what the split shows now
-  peek BUF             report state without consuming the done marker
-  wait BUF [SECS]      print done + result path, idle, exit N, or timeout (default 300s, every 3s)
-  result BUF           print the verbatim result a worker stored with done
-  stop BUF             close the split and kill the process
-  list                 print each worker: name, buffer, command, state
-  done BUF [TEXT]      a worker ends its turn; optional verbatim result
-  done BUF --file PATH end a turn with the result read from a file
-  doctor               diagnose socket, anchor, host and worker state
-
-BUF may be a numeric buffer id or a worker name registered with spawn --name.
-
-input expands backslash escapes: \r, \n, \t, \e, \xHH, \0NNN.
-Use \\ for a literal backslash.
-
-Env:
-  NVIM=<socket>       nvim instance to drive (default: inherited from the split)
+BUF is always a worker name. Tasks are files; no shell quoting.
 EOF
 }
 
+RPC='(function() local a = vim.tbl_map(vim.base64.decode, _A) local p = table.remove(a, 1) local f, err = loadfile(p) if not f then return "nvimctl: " .. tostring(err) end return f().cli(a) end)()'
+
+check() { case ${1:-} in nvimctl:*) die "${1#nvimctl: }" ;; esac; }
+
+valid_name() {
+    case ${1:-} in "" | *[!A-Za-z0-9_.-]*) die "bad worker name '${1:-}' (letters, digits, _ . -)" ;; esac
+}
+
 cmd=${1:-}
-case $cmd in "" | -h | --help | help)
-    usage
-    exit 0
-    ;;
-esac
+case $cmd in "" | -h | --help | help) usage; exit 0 ;; esac
 shift
 
-# BUF resolution, shared by every command that takes a buffer. Names are
-# persisted by `spawn --name` in $DONE/names, so even `done` (which runs inside
-# the worker with no nvim RPC) can resolve one.
-resolve_buf() {
-    local b=${1:-}
-    case $b in
-    "") die "need a numeric buffer id or a worker name" ;;
-    *[!0-9]*)
-        [ -f "$DONE/names/$b" ] || die "unknown worker '$b' (no record in $DONE/names)"
-        BUF=$(cat "$DONE/names/$b" 2>/dev/null)
-        case $BUF in "" | *[!0-9]*) die "bad name record for '$b'" ;; esac
-        ;;
-    *) BUF=$b ;;
-    esac
-}
-need_buf() { resolve_buf "${1:-}"; }
-
-# The worker side: no nvim needed, markers are the whole signal.
+# Worker side: markers only, no nvim connection.
 if [ "$cmd" = done ]; then
-    need_buf "${1:-}"
-    shift
-    mkdir -p "$DONE" || die "cannot write to $DONE"
-    if [ $# -gt 0 ]; then
-        case $1 in
-        --file)
-            shift
-            [ $# -gt 0 ] || die "usage: nvimctl done BUF --file PATH"
-            f=$1
-            [ -f "$f" ] && [ -r "$f" ] || die "result file not found or unreadable: $f"
-            cat "$f" > "$DONE/$BUF.result" || die "cannot write result for worker $BUF"
-            ;;
-        *)
-            printf '%s' "$*" > "$DONE/$BUF.result" || die "cannot write result for worker $BUF"
-            ;;
-        esac
-    fi
-    : > "$DONE/$BUF.done" || die "cannot write to $DONE"
-    # Written last: a concurrent wait must see .done first, never a bare
-    # protocol marker that would look like an already-collected turn.
-    : > "$DONE/$BUF.protocol" || die "cannot write to $DONE"
-    rm -f "$DONE/$BUF.busy"
+    name=${NVIMCTL_NAME:-}
+    [ -n "$name" ] || die "done runs inside a worker (NVIMCTL_NAME is unset)"
+    [ -n "${NVIM:-}" ] || die "done runs inside a worker (NVIM is unset)"
+    d=$ROOT/$(basename "$NVIM")
+    mkdir -p "$d" || die "cannot write to $d"
+    : > "$d/$name.done" || die "cannot write to $d"
+    rm -f "$d/$name.busy"
     exit 0
 fi
 
-# Call the module on one socket; prints the result. rpc() below calls this on
-# the socket being driven.
 rpc_on() {
-    local sock=$1
-    shift
-    local args="'$(printf %s "$MODULE" | base64 -w0)'" arg
-    for arg in "$@"; do args+=",'$(printf %s "$arg" | base64 -w0)'"; done
+    local sock=$1; shift
+    local args="'$(printf %s "$MODULE" | $B64)'" arg
+    for arg in "$@"; do args+=",'$(printf %s "$arg" | $B64)'"; done
     nvim --headless --server "$sock" --remote-expr "luaeval('$RPC', [$args])" </dev/null
+}
+
+host_call() {
+    local out
+    out=$(rpc "$@") || die "cannot reach nvim at $SOCK"
+    check "$out"
+    printf '%s\n' "$out"
+}
+
+try() {
+    local out
+    out=$(rpc "$@" 2>/dev/null) || return 0
+    case $out in nvimctl:*) return 0 ;; esac
+    printf '%s\n' "$out"
 }
 
 rpc() { rpc_on "$SOCK" "$@"; }
 
-# Is nvim actually reachable on this socket? A stale socket file can outlive
-# its server (e.g. after SIGKILL).
-nvim_live() {
-    nvim --headless --server "$1" --remote-expr '1' </dev/null >/dev/null 2>&1
+nvim_live() { nvim --headless --server "$1" --remote-expr '1' </dev/null >/dev/null 2>&1; }
+
+sockets() {
+    local s
+    for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0 "${TMPDIR:-/tmp}"/nvim.*/*/nvim.*.0 "${TMPDIR:-/tmp}"/nvim.*.0; do
+        [ -S "$s" ] && echo "$s"
+    done
 }
 
-# Print the first live socket whose instance hosts the caller's terminal
-# (anchor_for() in the module); empty when none does.
-scan_sockets() {
-    local s out
-    for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0 "${TMPDIR:-/tmp}"/nvim.*/*/nvim.*.0; do
-        [ -S "$s" ] || continue
-        out=$(rpc_on "$s" anchor_for "$anchor_pids" "$anchor_exes" 2>/dev/null) || continue
-        case $out in
-            "" | 0) ;;
-            *) echo "$s"; return 0 ;;
+# Caller identity: pid chain and non-shell command names, from ps on both
+# Linux and macOS. Passed to nvim so spawn can find the caller's window.
+pids= exes=
+ancestry() {
+    local p=$$ q e i
+    pids=$$
+    for ((i = 0; i < 64; i++)); do
+        q=$(ps -o ppid= -p "$p" 2>/dev/null | tr -d '[:space:]')
+        [ -n "$q" ] || break
+        p=$q
+        pids="$pids $p"
+        [ "$p" -le 1 ] && break
+    done
+    for q in $pids; do
+        e=$(ps -o comm= -p "$q" 2>/dev/null | sed 's/^[[:space:]]*//')
+        [ -n "$e" ] || continue
+        case ${e##*/} in
+            bash|sh|dash|zsh|fish|ksh|ash|nvim|vim|systemd|konsole|kitty|alacritty|wezterm|tmux|screen|ssh|sudo|env) ;;
+            *) case " $exes " in *" $e "*) ;; *) exes="$exes $e" ;; esac ;;
         esac
     done
+}
+
+scan_sockets() {
+    local s out
+    while read -r s; do
+        out=$(rpc_on "$s" anchor_for "$pids" "$exes" 2>/dev/null) || continue
+        case $out in "" | 0) ;; *) echo "$s"; return 0 ;; esac
+    done < <(sockets)
     return 1
 }
 
-# Resolve the socket: $NVIM when it names a live server; otherwise the
-# instance that hosts the caller's terminal. notes/guards are collected so
-# `doctor` can report them instead of dying.
 ancestry
 SOCK=${NVIM:-}
 notes= guards=
 if [ -n "$SOCK" ]; then
     if [ ! -S "$SOCK" ] || ! nvim_live "$SOCK"; then
-        notes+="NVIM='$NVIM' is not a live socket"$'\n'
-        fallback=$(scan_sockets) || true
-        if [ -n "$fallback" ]; then
-            SOCK=$fallback
-            notes+="using the instance that hosts the caller's terminal: $SOCK"$'\n'
-        else
-            SOCK=
-        fi
-    fi
-else
-    fallback=$(scan_sockets) || true
-    if [ -n "$fallback" ]; then
-        SOCK=$fallback
-    else
-        notes+="NVIM is unset and no live instance hosts the caller's terminal"$'\n'
+        notes+="NVIM='$SOCK' is not a live socket"$'\n'
+        SOCK=
     fi
 fi
-
-if [ -n "$SOCK" ]; then
-    for s in "${XDG_RUNTIME_DIR:-/tmp}"/nvim.*.0 "${TMPDIR:-/tmp}"/nvim.*/*/nvim.*.0; do
-        [ -S "$s" ] || continue
-        [ "$s" = "$SOCK" ] && continue
-        [ "$(rpc_on "$s" has_caller_terminal "$anchor_pids")" = 1 ] || continue
-        guards+="the caller's terminal is in $s but nvimctl is driving $SOCK; run nvimctl from inside that instance or export NVIM=$s"$'\n'
-    done
-fi
-
-if [ "$cmd" = doctor ]; then
-    echo "socket: ${SOCK:-<none>}"
-    if [ -n "$SOCK" ]; then
-        if nvim_live "$SOCK"; then echo "live: yes"; else echo "live: no"; fi
-    else
-        echo "live: no"
-    fi
-    aw=$(rpc anchor_for "$anchor_pids" "$anchor_exes" 2>/dev/null) || true
-    echo "anchor window: ${aw:-0}"
-    if [ -n "$SOCK" ]; then
-        case $(rpc has_caller_terminal "$anchor_pids" 2>/dev/null) in
-        1) echo "caller terminal hosted here: yes" ;;
-        *) echo "caller terminal hosted here: no" ;;
-        esac
-        echo "workers (name, buffer, command, state):"
-        out=$(rpc list 2>/dev/null) || true
-        [ -n "$out" ] && printf '%s\n' "$out" || echo "  none"
-    else
-        echo "caller terminal hosted here: unknown (no socket)"
-        echo "workers: unknown (no socket)"
-    fi
-    if [ -n "$notes$guards" ]; then
-        echo "problems:"
-        printf '%s' "$notes$guards" | sed '/^$/d;s/^/  - /'
-        echo "next steps: run nvimctl from inside the nvim terminal that hosts you, or export NVIM=<that socket>."
-    else
-        echo "problems: none"
-    fi
-    exit 0
-fi
-
 if [ -z "$SOCK" ]; then
-    [ -n "$notes" ] && die "$(printf '%s' "$notes" | sed '/^$/d;s/^/ /')"
-    die "no nvim instance; run nvimctl inside nvim or export NVIM=<socket>"
+    SOCK=$(scan_sockets) || SOCK=
+    if [ -n "$SOCK" ]; then
+        [ -n "${NVIM:-}" ] && notes+="using the instance that hosts the caller's terminal: $SOCK"$'\n'
+    else
+        notes+="no live nvim hosts this terminal; run nvimctl inside nvim or export NVIM=<socket>"$'\n'
+    fi
 fi
-[ -n "$guards" ] && die "$(printf '%s' "$guards" | sed '/^$/d;s/^/ /')"
+if [ -n "$SOCK" ]; then
+    while read -r s; do
+        [ "$s" = "$SOCK" ] && continue
+        [ "$(rpc_on "$s" has_caller_terminal "$pids" 2>/dev/null)" = 1 ] || continue
+        guards+="the caller's terminal is in $s but nvimctl is driving $SOCK; export NVIM=$s"$'\n'
+    done < <(sockets)
+fi
+[ -z "$notes$guards" ] || die "$(printf '%s' "$notes$guards" | sed '/^$/d')"
+[ -n "$SOCK" ] || die "no nvim instance; run nvimctl inside nvim or export NVIM=<socket>"
 
-check() {
-    case $1 in nvimctl:*) die "${1#nvimctl: }" ;; esac
-}
+D=$ROOT/$(basename "$SOCK")
+mkdir -p "$D" || die "cannot write to $D"
 
-# Report a worker's state without consuming markers; used by peek and wait --keep.
-peek_state() {
-    if [ -f "$DONE/$BUF.done" ]; then
-        echo done
-        [ -f "$DONE/$BUF.result" ] && echo "$DONE/$BUF.result"
-        return 0
-    fi
-    if [ -f "$DONE/$BUF.exit" ]; then
-        code=$(cat "$DONE/$BUF.exit" 2>/dev/null)
-        echo "exit ${code:-1}"
-        return 0
-    fi
-    if [ -f "$DONE/$BUF.busy" ]; then echo busy; return 0; fi
-    if [ "$(rpc alive "$BUF" 2>/dev/null)" = 1 ]; then echo ready; else echo "exit 1"; fi
-    return 0
-}
-
-last_screen() {
+screen() {
     local s
-    s=$(rpc read "$BUF" 2>/dev/null) || return 0
-    [ -n "$s" ] || return 0
-    printf '%s\n' "$s" | tail -n 10
+    s=$(try read "$1") || return 0
+    case $s in "" | nvimctl:*) return 0 ;; esac
+    printf '%s\n' "$s" | tail -n "$2"
 }
 
-case $cmd in
-spawn)
-    name=
-    if [ "${1:-}" = --name ]; then
-        shift
-        [ $# -gt 0 ] || die "usage: nvimctl spawn --name NAME CMD..."
-        name=$1
-        shift
-        case $name in "" | *[!A-Za-z0-9_.-]*) die "bad worker name '$name'" ;; esac
-    fi
-    [ $# -gt 0 ] || die "usage: nvimctl spawn [--name NAME] CMD..."
-    out=$(rpc spawn "$PWD" "$anchor_pids" "$anchor_exes" "$name" "$@") || die "spawn failed"
-    case $out in "" | *[!0-9]*) die "${out#nvimctl: }" ;; esac
-    if [ -n "$name" ]; then
-        mkdir -p "$DONE/names" || die "cannot write to $DONE/names"
-        printf '%s' "$out" > "$DONE/names/$name" || die "cannot record worker name '$name'"
-    fi
-    echo "$out"
-    ;;
-task)
-    need_buf "${1:-}"
-    shift
-    [ $# -gt 0 ] || die "usage: nvimctl task BUF TEXT..."
-    case $1 in
-    @*)
-        f=${1#@}
-        [ -f "$f" ] && [ -r "$f" ] || die "task file not found or unreadable: $f"
-        text=$(cat "$f") || die "cannot read task file: $f"
-        ;;
-    --file)
-        shift
-        [ $# -gt 0 ] || die "usage: nvimctl task BUF --file PATH"
-        f=$1
-        [ -f "$f" ] && [ -r "$f" ] || die "task file not found or unreadable: $f"
-        text=$(cat "$f") || die "cannot read task file: $f"
-        ;;
-    *) text="$*" ;;
-    esac
-    case $text in '!'*) die "task must not start with '!'; put the real task in a file and send a short pointer task" ;; esac
-    [ "$(rpc alive "$BUF" 2>/dev/null)" = 1 ] || die "buffer $BUF is not a live terminal"
-    if [ -f "$DONE/$BUF.busy" ]; then die "worker $BUF is busy; run wait first"; fi
-    if [ -f "$DONE/$BUF.done" ]; then die "worker $BUF has an unread result; run wait first"; fi
-    step="
-
-You are a worker: do this task, ask nothing, run no memo commands.
-
-When this is finished, end with a short report of what you did, then run exactly this in your shell and stop:
-  nvimctl done $BUF
-"
-    mkdir -p "$DONE" || die "cannot write to $DONE"
-    rm -f "$DONE/$BUF.protocol" || die "cannot clear protocol for $BUF"
-    : > "$DONE/$BUF.busy" || die "cannot write to $DONE"
-    fail_task() { rm -f "$DONE/$BUF.busy"; die "$1"; }
-    # Generic readiness: the spawned command (a non-shell process) must be
-    # running in the terminal's process tree before we type anything. There
-    # are no TUI-specific markers, and a bare shell is never a ready worker.
-    ready=0
+wait_ready() {
+    local name=$1 r s i ready=0 stable=0 previous='' content last
     for ((i = 0; i < 20; i++)); do
-        r=$(rpc ready "$BUF" 2>/dev/null)
+        r=$(try ready "$name")
         case $r in
-        1) ready=1; break ;;
-        '?')
-            # Process inspection unavailable: settle briefly, then accept a
-            # non-blank screen. Still no harness-specific text.
-            for _ in 1 2 3 4; do
-                sleep 0.5
-                s=$(rpc read "$BUF" 2>/dev/null)
-                [ -n "$s" ] && { ready=1; break; }
-            done
-            break
-            ;;
+            1) ready=1; break ;;
+            '?')
+                for _ in 1 2 3 4; do
+                    sleep 0.5
+                    [ -n "$(screen "$name" 1)" ] && { ready=1; break; }
+                done
+                break
+                ;;
         esac
         sleep 0.5
     done
-    [ $ready -eq 1 ] || fail_task "worker $BUF is not ready: only a shell is running in its terminal after 10s, and the spawned command has not started. Respawn the worker and retry."
-    # A running process is not enough: the TUI can still be loading and will
-    # drop input sent before its prompt exists. Harness-agnostic settle wait:
-    # require the screen to stop changing for a few consecutive samples, with
-    # a minimum delay, before typing. No TUI-specific strings.
-    stable=0
-    previous=''
+    [ $ready -eq 1 ] || { echo "nvimctl: worker '$name' is not ready after 10s; stop it and ask again with -- CMD." >&2; return 1; }
     for ((i = 0; i < 60; i++)); do
-        s=$(rpc read "$BUF" 2>/dev/null)
-        # A blank terminal buffer still contains newline bytes, so trim all
-        # whitespace before deciding that the TUI has drawn anything.
+        s=$(try read "$name")
         content=$(printf '%s' "$s" | tr -d '[:space:]')
-        last_line=$(printf '%s\n' "$s" | sed '/^[[:space:]]*$/d' | tail -n 1)
-        case "$last_line" in
-        *'$ ' | *'% ' | *'# ' | *'❯ ') shell_prompt=1 ;;
-        *) shell_prompt=0 ;;
-        esac
-        if [ -n "$content" ] && [ "$shell_prompt" -eq 0 ] && [ "$s" = "$previous" ]; then
+        last=$(printf '%s\n' "$s" | sed '/^[[:space:]]*$/d' | tail -n 1)
+        case $last in *'$ ' | *'% ' | *'# ' | *'❯ ') content= ;; esac
+        if [ -n "$content" ] && [ "$s" = "$previous" ]; then
             stable=$((stable + 1))
-            if [ "$stable" -ge 3 ]; then break; fi
+            [ $stable -ge 3 ] && return 0
         else
             stable=0
         fi
         previous=$s
         sleep 0.3
     done
-    if [ "$stable" -lt 3 ]; then
-        fail_task "worker $BUF screen never settled on a drawn, non-shell prompt; the TUI may still be loading. Respawn and retry, or use 'input' only when you mean raw bytes."
+    echo "nvimctl: worker '$name' screen never settled; stop it and ask again with -- CMD." >&2
+    return 1
+}
+
+send_chunks() {
+    local name=$1 payload=$2 chunk out
+    while [ -n "$payload" ]; do
+        chunk=${payload:0:160}
+        payload=${payload:160}
+        out=$(host_call send "$name" "$chunk") || return 1
+        sleep 0.03
+    done
+    return 0
+}
+
+wait_for() {
+    local name=$1 secs=$2 i code scr
+    if [ ! -f "$D/$name.busy" ] && [ ! -f "$D/$name.done" ] && [ ! -f "$D/$name.exit" ]; then
+        [ "$(try alive "$name")" = 1 ] && { echo idle; return 0; }
+        echo "exit 1"
+        screen "$name" 20
+        return 1
     fi
-    # A single large chansend can overflow the TUI input handler; the excess
-    # leaks into the terminal and gets executed by its shell. Send in small
-    # chunks with a short gap so the TUI consumes each one, then submit.
-    send_chunks() {
-        local payload=$1 chunk out
-        while [ -n "$payload" ]; do
-            chunk=${payload:0:160}
-            payload=${payload:160}
-            out=$(rpc send "$BUF" "$chunk") || return 1
-            if [ -n "$out" ]; then
-                printf '%s' "$out"
-                return 1
-            fi
-            sleep 0.03
-        done
-        return 0
-    }
-    out=$(send_chunks "$text") || fail_task "task failed (${out:-send error})"
-    [ -n "$out" ] && fail_task "${out#nvimctl: }"
-    out=$(send_chunks "$step") || fail_task "task failed (${out:-send error})"
-    [ -n "$out" ] && fail_task "${out#nvimctl: }"
-    out=$(rpc send "$BUF" $'\r') || fail_task "task failed"
-    if [ -n "$out" ]; then
-        rm -f "$DONE/$BUF.busy"
-        die "${out#nvimctl: }"
-    fi
-    ;;
-input)
-    need_buf "${1:-}"
-    shift
-    [ $# -gt 0 ] || die "usage: nvimctl input BUF TEXT..."
-    text=$(printf '%b' "$*")
-    out=$(rpc send "$BUF" "$text") || die "input failed"
-    [ -z "$out" ] || die "${out#nvimctl: }"
-    ;;
-peek)
-    need_buf "${1:-}"
-    peek_state
-    ;;
-wait)
-    keep=0
-    if [ "${1:-}" = --keep ]; then keep=1; shift; fi
-    need_buf "${1:-}"
-    if [ $keep -eq 1 ]; then peek_state; exit 0; fi
-    secs=${2:-300}
-    case $secs in *[!0-9]*) die "bad seconds '$secs'" ;; esac
-    # A collected turn leaves no .done/.busy/.exit. If this is a task worker,
-    # waiting again with no new task must return at once, not block to timeout.
-    if [ ! -f "$DONE/$BUF.done" ] && [ ! -f "$DONE/$BUF.busy" ] && [ ! -f "$DONE/$BUF.exit" ] && [ -f "$DONE/$BUF.protocol" ]; then
-        echo idle
-        exit 0
-    fi
-    for ((i = 0; i < secs; i += 3)); do
-        if [ -f "$DONE/$BUF.done" ]; then
-            rm -f "$DONE/$BUF.done" "$DONE/$BUF.busy" "$DONE/$BUF.exit"
+    for ((i = 0; i <= secs; i += 2)); do
+        if [ -f "$D/$name.done" ]; then
+            rm -f "$D/$name.done" "$D/$name.busy"
             echo done
-            [ -f "$DONE/$BUF.result" ] && echo "$DONE/$BUF.result"
-            exit 0
+            screen "$name" 40
+            return 0
         fi
-        if [ -f "$DONE/$BUF.exit" ]; then
-            code=$(cat "$DONE/$BUF.exit" 2>/dev/null)
-            scr=$(last_screen)
-            rm -f "$DONE/$BUF.exit" "$DONE/$BUF.busy" "$DONE/$BUF.done"
-            echo "exit ${code:-1}"
-            if [ -n "$scr" ]; then echo "last screen lines:"; printf '%s\n' "$scr"; fi
-            exit 1
-        fi
-        if [ "$(rpc alive "$BUF" 2>/dev/null)" = 0 ]; then
+        if [ -f "$D/$name.exit" ] || [ "$(try alive "$name")" != 1 ]; then
             sleep 0.2
-            scr=$(last_screen)
-            if [ -f "$DONE/$BUF.exit" ]; then
-                code=$(cat "$DONE/$BUF.exit" 2>/dev/null)
-                rm -f "$DONE/$BUF.exit" "$DONE/$BUF.busy" "$DONE/$BUF.done"
-                echo "exit ${code:-1}"
-            else
-                rm -f "$DONE/$BUF.busy" "$DONE/$BUF.done"
-                echo "exit 1"
-            fi
-            if [ -n "$scr" ]; then echo "last screen lines:"; printf '%s\n' "$scr"; fi
-            exit 1
+            code=$(cat "$D/$name.exit" 2>/dev/null)
+            rm -f "$D/$name.exit" "$D/$name.busy"
+            echo "exit ${code:-1}"
+            screen "$name" 20
+            return 1
         fi
-        sleep 3
+        sleep 2
     done
     echo timeout
-    exit 1
-    ;;
-result)
-    need_buf "${1:-}"
-    f="$DONE/$BUF.result"
-    [ -f "$f" ] || die "no result for worker $BUF (run wait until it is done)"
-    cat "$f"
-    ;;
-read)
-    need_buf "${1:-}"
-    out=$(rpc read "$BUF") || die "read failed"
-    check "$out"
+    screen "$name" 20
+    return 1
+}
+
+spawn_worker() {
+    local name=$1 out
+    shift
+    out=$(host_call spawn "$PWD" "$pids" "$exes" "$name" "$LAYOUT" "$MAX" "$@") || exit 1
+    case $out in "" | *[!0-9]*) die "spawn failed: $out" ;; esac
     printf '%s\n' "$out"
+}
+
+case $cmd in
+ask)
+    valid_name "${1:-}"
+    name=$1
+    shift
+    args=() cmdv=()
+    while [ $# -gt 0 ]; do
+        if [ "$1" = -- ]; then shift; cmdv=("$@"); break; fi
+        args+=("$1")
+        shift
+    done
+    [ ${#args[@]} -gt 0 ] || die "usage: nvimctl ask NAME @FILE|TEXT... [-- CMD...]"
+    if [ ${#args[@]} -eq 1 ] && [ "${args[0]:0:1}" = @ ]; then
+        f=${args[0]:1}
+        [ -f "$f" ] && [ -r "$f" ] || die "task file not readable: $f"
+        text=$(cat "$f") || die "cannot read task file: $f"
+    else
+        text="${args[*]}"
+    fi
+    [ -n "$text" ] || die "empty task"
+    case $text in '!'*) die "task must not start with '!'" ;; esac
+    if [ "$(try alive "$name")" != 1 ]; then
+        [ ${#cmdv[@]} -gt 0 ] || die "worker '$name' is not running; add -- CMD to start it"
+        spawn_worker "$name" "${cmdv[@]}" >/dev/null
+    fi
+    [ -f "$D/$name.busy" ] && die "worker '$name' is busy; run: nvimctl wait $name"
+    [ -f "$D/$name.done" ] && die "worker '$name' has an uncollected result; run: nvimctl wait $name"
+    rm -f "$D/$name.exit"
+    : > "$D/$name.busy" || die "cannot write to $D"
+    fail() { rm -f "$D/$name.busy"; exit 1; }
+    wait_ready "$name" || fail
+    send_chunks "$name" "$text" || fail
+    step="
+You are a worker: do this task, ask nothing, run no memo commands.
+
+When this is finished, end with a short report of what you did, then run exactly this in your shell and stop:
+  nvimctl done
+"
+    send_chunks "$name" "$step" || fail
+    host_call send "$name" $'\r' >/dev/null || fail
+    wait_for "$name" "$TIMEOUT"
+    ;;
+wait)
+    valid_name "${1:-}"
+    name=$1
+    secs=${2:-$TIMEOUT}
+    case $secs in "" | *[!0-9]*) die "bad seconds '$secs'" ;; esac
+    wait_for "$name" "$secs"
     ;;
 stop)
-    need_buf "${1:-}"
-    out=$(rpc stop "$BUF") || die "stop failed"
-    check "$out"
-    if [ -d "$DONE/names" ]; then
-        for nf in "$DONE/names"/*; do
-            [ -f "$nf" ] || continue
-            [ "$(cat "$nf" 2>/dev/null)" = "$BUF" ] && rm -f "$nf"
-        done
-    fi
-    printf '%s\n' "$out"
+    valid_name "${1:-}"
+    name=$1
+    host_call stop "$name" >/dev/null || exit 1
+    rm -f "$D/$name".busy "$D/$name".done "$D/$name".exit
+    printf 'stopped\n'
     ;;
-list)
-    out=$(rpc list) || die "list failed"
-    check "$out"
-    printf '%s\n' "$out"
+input|steer)
+    valid_name "${1:-}"
+    name=$1
+    shift
+    [ $# -gt 0 ] || die "usage: nvimctl input NAME TEXT..."
+    text=$(printf '%b.' "$*")
+    host_call send "$name" "${text%.}" >/dev/null || exit 1
+    ;;
+read)
+    valid_name "${1:-}"
+    name=$1
+    host_call read "$name"
     ;;
 *)
     die "unknown command '$cmd' (see nvimctl --help)"
