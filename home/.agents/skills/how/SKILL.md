@@ -1,35 +1,35 @@
 ---
 name: how
-description: Use for "how does X work", code walkthroughs before changing something, and placement / ownership / layering questions ("where should this live", "which package owns this", "is this the right layer"). Explains subsystem architecture, runtime flow, onboarding mental models. Use why for motivation.
+description: Use for "how does X work", code walkthroughs before changing something, and placement questions. Use it for ownership and layering questions. Explains subsystem architecture, runtime flow, and onboarding mental models. Use why for motivation.
 ---
 
 # How
 
-Explore the codebase with (nvim subagents if necessary) to answer "how does X work?" questions. Produce architectural explanations at the level of a senior engineer onboarding onto a subsystem, enough to build a working mental model, not so much that it reads like annotated source code.
+If exploration is necessary, use the nvim-subagent skill to explore the codebase. Answer "how does X work?" questions. Write explanations at the level of a senior engineer who is new to the subsystem. Give enough detail to build a working mental model. Do not give so much detail that the text reads like annotated source code.
 
-Every spawn is a Task nvim subagent. Pick each nvim subagent's model, reasoning level and fast or standard speed for the job.
+Every spawn is a Task for the nvim-subagent skill. For each Task, pick the model, the reasoning level, and the speed. Use fast or standard speed for the job.
 
 ## 1. Assess complexity
 
-If the scope is ambiguous, state your interpretation and explore. The user can redirect.
+If the scope is ambiguous, state your interpretation and explore. The user can redirect you.
 
-- **Simple** (a single module, a small utility, a narrow question such as "how does function X work"): no explorers. Spawn one explainer that explores and explains in one pass. Go to step 4.
-- **Complex** (a subsystem spanning multiple files or services, a cross-cutting feature, a full architectural overview): go to step 2.
+- Simple (one module, one utility, or one narrow question): do not spawn explorers. Spawn one explainer. Let it explore and explain in one pass. Go to step 4.
+- Complex (a subsystem that spans files or services, a cross-cutting feature, or a full architecture overview): go to step 2.
 
-When in doubt, take the simple path.
+When in doubt, take the Simple path.
 
 ## 2. Explore (complex only)
 
-Decompose the question into 2 to 4 angles, each a distinct slice of the subsystem. Spawn all explorers in a single message with its angle filled in.
+Split the question into 2 to 4 angles. Each angle is a distinct slice of the subsystem. Spawn all explorers in one message. Fill in the angle for each explorer.
 
 ## 3. Synthesize (complex only)
 
-Once all explorers have returned, spawn one explainer nvim subagent and every explorer's findings filled in.
+After all explorers return, spawn one explainer. Give it every explorer's findings.
 
 ## 4. Present
 
-Present the explainer's output. Light edits for clarity or context from the conversation are fine. Do not substantially rewrite it.
+Present the explainer's output. You can make light edits for clarity or for context from the conversation. Do not rewrite it substantially.
 
 ## Output format
 
-Drop any that do not apply: Overview, Key Concepts, How It Works, Where Things Live, Gotchas.
+If a section does not apply, drop it. The sections are Overview, Key Concepts, How It Works, Where Things Live, and Gotchas.

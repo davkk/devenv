@@ -3,8 +3,8 @@ name: commit
 description: use when user asks you to commit the current changes
 ---
 
-Check what was changed during the latest session. If the changes contain different aspects, try to split them into chunks and commit them separately. But keep the overall number of commits to a minimum.
+Review the changes from the latest session. If the changes cover different aspects, split them into chunks. Commit each chunk separately. Keep the total number of commits low.
 
-Keep the convention of the commit messages consistent with the rest of the already existing ones. If the commits contain JIRA ticket codes, make sure to ask the user to specify them explicitly.
+If earlier commits set a message convention, follow that convention. If the commits contain JIRA ticket codes, ask the caller to specify them explicitly.
 
-Mostly commit with just the title, without the body.
+Use a title only in most commits. Omit the body.
