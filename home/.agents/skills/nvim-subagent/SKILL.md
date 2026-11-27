@@ -5,14 +5,10 @@ description: "Use when one agent must direct other agents in Neovim: send a name
 
 # Nvim subagents
 
-A worker is an agent in a named nvim terminal. The script owns spawning, reuse, readiness, turn state and the worker limit. Its commands are transport names; this skill gives them their agent meaning.
+A worker is an agent in a named nvim terminal. Run `nvimctl --help` to learn the commands and how to run them.
 
-- `nvimctl ask NAME @FILE [-- CMD...]` — send a task file and wait. `CMD` starts `NAME` only when it is dead. Calling it again with the same name is a follow-up; the worker keeps its context. The first output line is `done` with the result, `exit N`, or `timeout` followed by screen lines.
-- `nvimctl input NAME TEXT...` — send raw bytes to a running worker without touching turn state. Use `'\003'` to interrupt or text to steer it. Escapes: `\r \n \t \e \xHH \0NNN`, `\\`. Never use it to start a task.
-- `nvimctl stop NAME` — kill the worker when the job is finished or the worker is stuck.
+A harness is the agent program that runs this session. Read its name from `$AI_AGENT`. Use that harness for each worker. The worker reads files, edits files, and runs shell commands in that harness. Do not start a different agent CLI.
 
-The worker ends each turn with `nvimctl done`. The worker reads its own name from the environment.
+## Rules
 
-Write each task to a file: name the files, state the goal, give exact steps, and make it self-contained. Make all decisions yourself; never ask a worker to judge, review, choose or rank.
-
-For parallel work, run two `ask` commands in the background in one shell. For recovery, `nvimctl wait NAME` collects after a timeout and `nvimctl read NAME` prints the screen.
+The worker ends each turn with `nvimctl done`. The worker reads its own name from the environment. Send a short task as inline text. Write a long task to a file to avoid shell quoting. State the goal and give exact steps. Make each task self-contained. Make all decisions yourself. Never ask a worker to judge, review, choose, or rank.

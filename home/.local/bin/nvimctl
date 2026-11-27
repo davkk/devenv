@@ -23,14 +23,31 @@ die() { echo "nvimctl: $*" >&2; exit 1; }
 
 usage() {
     cat <<'EOF'
-usage: nvimctl COMMAND [ARGS]
+usage: COMMAND [ARGS]
 
-  ask NAME @FILE [-- CMD...]   send a task, wait, print the outcome
-  input NAME TEXT...           send raw bytes to a running worker
-  stop NAME                    kill a finished or dead worker
-  done                         worker side: end this worker's turn
+  ask NAME @FILE|TEXT... [-- CMD...]   send a task and wait for the result
+  input NAME TEXT...                   send raw bytes to a running worker
+  stop NAME                            kill a finished or stuck worker
+  done                                 worker side: end the turn
 
-BUF is always a worker name. Tasks are files; no shell quoting.
+Tasks
+  One argument that starts with @ names a task file. Other arguments are the task text.
+  CMD starts NAME only when that worker is dead. Call ask again with the same name for a follow-up.
+  The worker keeps its context between tasks. Give each task a goal and exact steps.
+  The first output line is done with the result, exit N, or timeout with screen lines after it.
+
+Input
+  input does not change the turn state. Use '\003' to interrupt a worker or text to steer it.
+  Escapes: \r \n \t \e \xHH \0NNN, \\.
+  Never use input to start a task.
+
+Parallel work
+  Start each worker with ask in the background of one shell. Save each job ID.
+  Use shell wait <job ID> to collect a result. Collect the workers in any order.
+  If a wait fails or the shell dies, run wait NAME to resume.
+  A busy marker stays until a waiter collects the result.
+  If the worker already finished, wait prints the result at once.
+  Use read NAME to see the screen.
 EOF
 }
 
@@ -264,6 +281,8 @@ ask)
     fi
     [ -n "$text" ] || die "empty task"
     case $text in '!'*) die "task must not start with '!'" ;; esac
+    text="You are a subagent spawned by another session.
+$text"
     if [ "$(try alive "$name")" != 1 ]; then
         [ ${#cmdv[@]} -gt 0 ] || die "worker '$name' is not running; add -- CMD to start it"
         spawn_worker "$name" "${cmdv[@]}" >/dev/null
@@ -276,7 +295,7 @@ ask)
     wait_ready "$name" || fail
     send_chunks "$name" "$text" || fail
     step="
-You are a worker: do this task, ask nothing, run no memo commands.
+Do this task and ask nothing.
 
 When this is finished, end with a short report of what you did, then run exactly this in your shell and stop:
   nvimctl done
